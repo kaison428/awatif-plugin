@@ -1,0 +1,7 @@
+{
+  "name": "awatif-plugin",
+  "version": "0.1.0",
+  "description": "Claude Code plugin for working with Awatif structural analysis",
+  "author": { "name": "Kaison" },
+  "keywords": ["awatif", "structural-analysis", "fem"]
+}
