@@ -1,0 +1,169 @@
+{
+  "metadata": {
+    "skill_name": "awatif-model",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-10-09T04:20:29Z",
+    "evals_run": [
+      1
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 19.8,
+        "tokens": 40802,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Creates a subfolder under models/ containing a model.ts file",
+          "passed": true,
+          "evidence": "models/single-storey-portal-frame/model.ts exists"
+        },
+        {
+          "text": "4 points: [0,0,0], [0,0,3], [6,0,3], [6,0,0]",
+          "passed": true,
+          "evidence": "points match exactly"
+        },
+        {
+          "text": "3 lines: left column [1,2], beam [2,3], right column [3,4]",
+          "passed": true,
+          "evidence": "lines [1,2],[2,3],[3,4]"
+        },
+        {
+          "text": "Fixed point-support on points 1 and 4",
+          "passed": true,
+          "evidence": "point-support type fixed, geometry [1,4]"
+        },
+        {
+          "text": "Steel member assigned to lines 1, 2 and 3",
+          "passed": true,
+          "evidence": "steel-member geometry [1,2,3], IPE 300 S235"
+        },
+        {
+          "text": "Does not add loads or load cases that were not requested",
+          "passed": true,
+          "evidence": "no loads or loadCases in model.ts"
+        },
+        {
+          "text": "models/index.ts re-exports the model so platform.ts picks it up",
+          "passed": true,
+          "evidence": "models/index.ts exports singleStoreyPortalFrame"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.7142857142857143,
+        "passed": 5,
+        "failed": 2,
+        "total": 7,
+        "time_seconds": 32.3,
+        "tokens": 44962,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Creates a subfolder under models/ containing a model.ts file",
+          "passed": true,
+          "evidence": "models/steel-portal-frame/model.ts exists"
+        },
+        {
+          "text": "4 points: [0,0,0], [0,0,3], [6,0,3], [6,0,0]",
+          "passed": true,
+          "evidence": "points match exactly"
+        },
+        {
+          "text": "3 lines: left column [1,2], beam [2,3], right column [3,4]",
+          "passed": true,
+          "evidence": "lines [1,2],[2,3],[3,4]"
+        },
+        {
+          "text": "Fixed point-support on points 1 and 4",
+          "passed": true,
+          "evidence": "point-support type fixed, geometry [1,4]"
+        },
+        {
+          "text": "Steel member assigned to lines 1, 2 and 3",
+          "passed": true,
+          "evidence": "steel-member on [1,3] (HEA 200) and [2] (IPE 300), both S355"
+        },
+        {
+          "text": "Does not add loads or load cases that were not requested",
+          "passed": false,
+          "evidence": "Added Dead/Live/Wind cases, 2 combinations and 3 distributed loads with placeholder magnitudes"
+        },
+        {
+          "text": "models/index.ts re-exports the model so platform.ts picks it up",
+          "passed": false,
+          "evidence": "No models/index.ts created; platform.ts would not load the model"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 19.8,
+        "stddev": 0.0,
+        "min": 19.8,
+        "max": 19.8
+      },
+      "tokens": {
+        "mean": 40802.0,
+        "stddev": 0.0,
+        "min": 40802,
+        "max": 40802
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.7143,
+        "stddev": 0.0,
+        "min": 0.7143,
+        "max": 0.7143
+      },
+      "time_seconds": {
+        "mean": 32.3,
+        "stddev": 0.0,
+        "min": 32.3,
+        "max": 32.3
+      },
+      "tokens": {
+        "mean": 44962.0,
+        "stddev": 0.0,
+        "min": 44962,
+        "max": 44962
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.29",
+      "time_seconds": "-12.5",
+      "tokens": "-4160"
+    }
+  },
+  "notes": []
+}

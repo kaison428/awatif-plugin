@@ -1,0 +1,20 @@
+{
+  "skill_name": "awatif-model",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a single-storey steel portal frame, 3 m tall with a 6 m span and fixed connections.",
+      "expected_output": "models/single-storey-portal-frame/model.ts matches evals/files/single-storey-portal-frame.expected.ts",
+      "files": ["evals/files/single-storey-portal-frame.expected.ts"],
+      "expectations": [
+        "Creates a subfolder under /models with a model.ts file",
+        "4 points: [0,0,0], [0,0,3], [6,0,3], [6,0,0]",
+        "3 lines: left column [1,2], beam [2,3], right column [3,4]",
+        "Fixed point-support on points 1 and 4",
+        "Steel member assigned to lines 1, 2 and 3",
+        "Does not add loads or load cases that were not requested",
+        "models/index.ts re-exports the model so platform.ts picks it up"
+      ]
+    }
+  ]
+}

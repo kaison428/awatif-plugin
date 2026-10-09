@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "awatif": "github:madil4/awatif#feat/artifacts"
+    "awatif": "github:madil4/awatif#feat/artifacts",
+    "vite": "^8.3.4",
+    "vite-plugin-glsl": "^1.6.2"
   }
 }
