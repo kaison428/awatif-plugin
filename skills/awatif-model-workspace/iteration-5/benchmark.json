@@ -1,0 +1,371 @@
+{
+  "metadata": {
+    "skill_name": "awatif-model",
+    "executor_model": "sonnet",
+    "timestamp": "2026-10-09T07:16:41.785Z",
+    "evals_run": [
+      1,
+      2
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8571428571428571,
+        "passed": 6,
+        "failed": 1,
+        "total": 7,
+        "time_seconds": 148.9,
+        "tokens": 42838,
+        "tool_calls": 11,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Creates a subfolder under /models with a model.ts file",
+          "passed": true,
+          "evidence": "model.ts under models/"
+        },
+        {
+          "text": "4 points: [0,0,0], [0,0,3], [6,0,3], [6,0,0]",
+          "passed": true,
+          "evidence": "points match"
+        },
+        {
+          "text": "3 lines: left column [1,2], beam [2,3], right column [3,4]",
+          "passed": true,
+          "evidence": "lines match"
+        },
+        {
+          "text": "Fixed point-support on points 1 and 4",
+          "passed": true,
+          "evidence": "fixed on [1,4]"
+        },
+        {
+          "text": "generic-member placeholder assigned to lines 1, 2 and 3 (no section was given)",
+          "passed": false,
+          "evidence": "steel-member IPE 300 chosen though no section given; run read prior iteration output"
+        },
+        {
+          "text": "Does not add loads or load cases that were not requested",
+          "passed": true,
+          "evidence": "no loads"
+        },
+        {
+          "text": "models/index.ts re-exports the model so platform.ts picks it up",
+          "passed": true,
+          "evidence": "index.ts exports it"
+        }
+      ]
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 15,
+        "tokens": 40961,
+        "tool_calls": 7,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Creates a subfolder under /models with a model.ts file",
+          "passed": true,
+          "evidence": "model.ts under models/"
+        },
+        {
+          "text": "4 points: [0,0,0], [0,0,3], [6,0,3], [6,0,0]",
+          "passed": true,
+          "evidence": "points match"
+        },
+        {
+          "text": "3 lines: left column [1,2], beam [2,3], right column [3,4]",
+          "passed": true,
+          "evidence": "lines match"
+        },
+        {
+          "text": "Fixed point-support on points 1 and 4",
+          "passed": true,
+          "evidence": "fixed on [1,4]"
+        },
+        {
+          "text": "generic-member placeholder assigned to lines 1, 2 and 3 (no section was given)",
+          "passed": true,
+          "evidence": "generic-member on 1-3"
+        },
+        {
+          "text": "Does not add loads or load cases that were not requested",
+          "passed": true,
+          "evidence": "no loads"
+        },
+        {
+          "text": "models/index.ts re-exports the model so platform.ts picks it up",
+          "passed": true,
+          "evidence": "index.ts exports it"
+        }
+      ]
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 1,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 18.5,
+        "tokens": 41271,
+        "tool_calls": 8,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Creates a subfolder under /models with a model.ts file",
+          "passed": true,
+          "evidence": "model.ts under models/"
+        },
+        {
+          "text": "4 points: [0,0,0], [0,0,3], [6,0,3], [6,0,0]",
+          "passed": true,
+          "evidence": "points match"
+        },
+        {
+          "text": "3 lines: left column [1,2], beam [2,3], right column [3,4]",
+          "passed": true,
+          "evidence": "lines match"
+        },
+        {
+          "text": "Fixed point-support on points 1 and 4",
+          "passed": true,
+          "evidence": "fixed on [1,4]"
+        },
+        {
+          "text": "generic-member placeholder assigned to lines 1, 2 and 3 (no section was given)",
+          "passed": true,
+          "evidence": "generic-member on 1-3"
+        },
+        {
+          "text": "Does not add loads or load cases that were not requested",
+          "passed": true,
+          "evidence": "no loads"
+        },
+        {
+          "text": "models/index.ts re-exports the model so platform.ts picks it up",
+          "passed": true,
+          "evidence": "index.ts exports it"
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.9,
+        "passed": 9,
+        "failed": 1,
+        "total": 10,
+        "time_seconds": 34.3,
+        "tokens": 45522,
+        "tool_calls": 10,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Creates a subfolder under /models with a model.ts file",
+          "passed": true,
+          "evidence": "model.ts under models/"
+        },
+        {
+          "text": "Reads the drawing dimensions: 70'-0\" span (~21.34 m) between column lines A and B",
+          "passed": true,
+          "evidence": "x 0..21.336"
+        },
+        {
+          "text": "Column height of 19'-6 3/4\" (~5.96 m) and truss underside at 16'-8\" (~5.08 m), converted from imperial to metres",
+          "passed": false,
+          "evidence": "column top 5.08, top chord starts 6.02; column height 5.963 missing"
+        },
+        {
+          "text": "Roof pitch of 4:12 (ridge ~3.56 m above the eaves), symmetric about mid-span, in the XZ plane (y = 0)",
+          "passed": true,
+          "evidence": "4:12, ridge rise 3.556, y=0"
+        },
+        {
+          "text": "Two columns, one at x = 0 and one at x = span, with points at base, truss bottom chord and truss top chord",
+          "passed": true,
+          "evidence": "x=0 points at base, bottom chord, top chord"
+        },
+        {
+          "text": "Truss modelled with top chord, bottom chord, verticals and diagonal web members as lines (not a single beam)",
+          "passed": true,
+          "evidence": "chords, verticals, diagonals"
+        },
+        {
+          "text": "Pinned or fixed point-support on the two column base points",
+          "passed": true,
+          "evidence": "fixed/pinned bases"
+        },
+        {
+          "text": "Every line has a design entry: generic-member placeholder where the section is unknown (W16x67, HSS), the matching member template (steel, concrete or timber) only for a section Awatif supports",
+          "passed": true,
+          "evidence": "generic-member placeholder on every line"
+        },
+        {
+          "text": "Does not add loads or load cases that were not requested",
+          "passed": true,
+          "evidence": "no loads (empty arrays)"
+        },
+        {
+          "text": "models/index.ts re-exports the model so platform.ts picks it up",
+          "passed": true,
+          "evidence": "index.ts exports it"
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1,
+        "passed": 10,
+        "failed": 0,
+        "total": 10,
+        "time_seconds": 33,
+        "tokens": 44768,
+        "tool_calls": 9,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Creates a subfolder under /models with a model.ts file",
+          "passed": true,
+          "evidence": "model.ts under models/"
+        },
+        {
+          "text": "Reads the drawing dimensions: 70'-0\" span (~21.34 m) between column lines A and B",
+          "passed": true,
+          "evidence": "x 0..21.336"
+        },
+        {
+          "text": "Column height of 19'-6 3/4\" (~5.96 m) and truss underside at 16'-8\" (~5.08 m), converted from imperial to metres",
+          "passed": true,
+          "evidence": "column top 5.963, underside 5.08"
+        },
+        {
+          "text": "Roof pitch of 4:12 (ridge ~3.56 m above the eaves), symmetric about mid-span, in the XZ plane (y = 0)",
+          "passed": true,
+          "evidence": "4:12, ridge rise 3.556, y=0"
+        },
+        {
+          "text": "Two columns, one at x = 0 and one at x = span, with points at base, truss bottom chord and truss top chord",
+          "passed": true,
+          "evidence": "x=0 points at base, bottom chord, top chord"
+        },
+        {
+          "text": "Truss modelled with top chord, bottom chord, verticals and diagonal web members as lines (not a single beam)",
+          "passed": true,
+          "evidence": "chords, verticals, diagonals"
+        },
+        {
+          "text": "Pinned or fixed point-support on the two column base points",
+          "passed": true,
+          "evidence": "fixed/pinned bases"
+        },
+        {
+          "text": "Every line has a design entry: generic-member placeholder where the section is unknown (W16x67, HSS), the matching member template (steel, concrete or timber) only for a section Awatif supports",
+          "passed": true,
+          "evidence": "generic-member placeholder on every line"
+        },
+        {
+          "text": "Does not add loads or load cases that were not requested",
+          "passed": true,
+          "evidence": "no loads (empty arrays)"
+        },
+        {
+          "text": "models/index.ts re-exports the model so platform.ts picks it up",
+          "passed": true,
+          "evidence": "index.ts exports it"
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 0.9,
+        "passed": 9,
+        "failed": 1,
+        "total": 10,
+        "time_seconds": 41.1,
+        "tokens": 46563,
+        "tool_calls": 10,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Creates a subfolder under /models with a model.ts file",
+          "passed": true,
+          "evidence": "model.ts under models/"
+        },
+        {
+          "text": "Reads the drawing dimensions: 70'-0\" span (~21.34 m) between column lines A and B",
+          "passed": true,
+          "evidence": "x 0..21.336"
+        },
+        {
+          "text": "Column height of 19'-6 3/4\" (~5.96 m) and truss underside at 16'-8\" (~5.08 m), converted from imperial to metres",
+          "passed": false,
+          "evidence": "column top 5.08, top chord starts 6.02 (also duplicate point at z=5.08)"
+        },
+        {
+          "text": "Roof pitch of 4:12 (ridge ~3.56 m above the eaves), symmetric about mid-span, in the XZ plane (y = 0)",
+          "passed": true,
+          "evidence": "4:12, ridge rise 3.556, y=0"
+        },
+        {
+          "text": "Two columns, one at x = 0 and one at x = span, with points at base, truss bottom chord and truss top chord",
+          "passed": true,
+          "evidence": "x=0 points at base, bottom chord, top chord"
+        },
+        {
+          "text": "Truss modelled with top chord, bottom chord, verticals and diagonal web members as lines (not a single beam)",
+          "passed": true,
+          "evidence": "chords, verticals, diagonals"
+        },
+        {
+          "text": "Pinned or fixed point-support on the two column base points",
+          "passed": true,
+          "evidence": "fixed/pinned bases"
+        },
+        {
+          "text": "Every line has a design entry: generic-member placeholder where the section is unknown (W16x67, HSS), the matching member template (steel, concrete or timber) only for a section Awatif supports",
+          "passed": true,
+          "evidence": "generic-member placeholder on every line"
+        },
+        {
+          "text": "Does not add loads or load cases that were not requested",
+          "passed": true,
+          "evidence": "no loads (empty arrays)"
+        },
+        {
+          "text": "models/index.ts re-exports the model so platform.ts picks it up",
+          "passed": true,
+          "evidence": "index.ts exports it"
+        }
+      ]
+    }
+  ]
+}

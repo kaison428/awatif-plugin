@@ -11,7 +11,28 @@
         "4 points: [0,0,0], [0,0,3], [6,0,3], [6,0,0]",
         "3 lines: left column [1,2], beam [2,3], right column [3,4]",
         "Fixed point-support on points 1 and 4",
-        "Steel member assigned to lines 1, 2 and 3",
+        "generic-member placeholder assigned to lines 1, 2 and 3 (no section was given)",
+        "Does not add loads or load cases that were not requested",
+        "models/index.ts re-exports the model so platform.ts picks it up"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Read the attached Cornerstone Pressure Washing section drawing and generate an Awatif model of the steel truss building from it.",
+      "expected_output": "models/cornerstone-pressure-washing/model.ts approximates evals/files/cornerstone-pressure-washing.expected.ts",
+      "files": [
+        "evals/files/cornerstone_pressure_washing.png",
+        "evals/files/cornerstone-pressure-washing.expected.ts"
+      ],
+      "expectations": [
+        "Creates a subfolder under /models with a model.ts file",
+        "Reads the drawing dimensions: 70'-0\" span (~21.34 m) between column lines A and B",
+        "Column height of 19'-6 3/4\" (~5.96 m) and truss underside at 16'-8\" (~5.08 m), converted from imperial to metres",
+        "Roof pitch of 4:12 (ridge ~3.56 m above the eaves), symmetric about mid-span, in the XZ plane (y = 0)",
+        "Two columns, one at x = 0 and one at x = span, with points at base, truss bottom chord and truss top chord",
+        "Truss modelled with top chord, bottom chord, verticals and diagonal web members as lines (not a single beam)",
+        "Pinned or fixed point-support on the two column base points",
+        "Every line has a design entry: generic-member placeholder where the section is unknown (W16x67, HSS), the matching member template (steel, concrete or timber) only for a section Awatif supports",
         "Does not add loads or load cases that were not requested",
         "models/index.ts re-exports the model so platform.ts picks it up"
       ]

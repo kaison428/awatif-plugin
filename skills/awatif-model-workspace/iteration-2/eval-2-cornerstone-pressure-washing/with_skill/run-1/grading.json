@@ -1,0 +1,59 @@
+{
+  "expectations": [
+    {
+      "text": "Creates a subfolder under /models with a model.ts file",
+      "passed": true,
+      "evidence": "models/cornerstone-pressure-washing/model.ts"
+    },
+    {
+      "text": "Reads 70'-0\" span (~21.34 m)",
+      "passed": true,
+      "evidence": "x 0..21.336"
+    },
+    {
+      "text": "Column 5.96 m and truss underside 5.08 m",
+      "passed": true,
+      "evidence": "column top 5.963, truss underside 5.080"
+    },
+    {
+      "text": "4:12 pitch, symmetric, XZ plane",
+      "passed": true,
+      "evidence": "ridge 9.519 vs eaves 5.963; y=0"
+    },
+    {
+      "text": "Two columns with base, bottom chord, top chord points",
+      "passed": true,
+      "evidence": "points 1,3,20 at x=0"
+    },
+    {
+      "text": "Truss as top/bottom chord, verticals, diagonals",
+      "passed": true,
+      "evidence": "36 points, 67 lines, same topology as expected"
+    },
+    {
+      "text": "Pinned or fixed supports on column bases",
+      "passed": true,
+      "evidence": "fixed on [1,2]"
+    },
+    {
+      "text": "Steel member on columns and truss lines",
+      "passed": false,
+      "evidence": "no design block; omitted because skill says not to do design"
+    },
+    {
+      "text": "No unrequested loads or load cases",
+      "passed": false,
+      "evidence": "added Dead/Snow/Wind cases, 2 combinations and 3 placeholder loads"
+    },
+    {
+      "text": "models/index.ts re-exports the model",
+      "passed": true,
+      "evidence": "index.ts exports it"
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 2,
+    "total": 10
+  }
+}

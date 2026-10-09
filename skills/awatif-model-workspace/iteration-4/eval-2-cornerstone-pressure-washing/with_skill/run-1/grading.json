@@ -1,0 +1,59 @@
+{
+  "expectations": [
+    {
+      "text": "Creates a subfolder under /models with a model.ts file",
+      "passed": true,
+      "evidence": "models/cornerstone-truss/model.ts"
+    },
+    {
+      "text": "Reads the drawing dimensions: 70'-0\" span (~21.34 m) between column lines A and B",
+      "passed": true,
+      "evidence": "x 0..21.336"
+    },
+    {
+      "text": "Column height of 19'-6 3/4\" (~5.96 m) and truss underside at 16'-8\" (~5.08 m), converted from imperial to metres",
+      "passed": false,
+      "evidence": "underside 5.08 ok but column top is 5.08, not 5.963"
+    },
+    {
+      "text": "Roof pitch of 4:12 (ridge ~3.56 m above the eaves), symmetric about mid-span, in the XZ plane (y = 0)",
+      "passed": true,
+      "evidence": "ridge 9.576, rise 3.556, y=0"
+    },
+    {
+      "text": "Two columns, one at x = 0 and one at x = span, with points at base, truss bottom chord and truss top chord",
+      "passed": true,
+      "evidence": "x=0 points at z 0, 5.08, 6.02"
+    },
+    {
+      "text": "Truss modelled with top chord, bottom chord, verticals and diagonal web members as lines (not a single beam)",
+      "passed": true,
+      "evidence": "28 points, 51 lines, chords, verticals, diagonals"
+    },
+    {
+      "text": "Pinned or fixed point-support on the two column base points",
+      "passed": true,
+      "evidence": "fixed on [1,2]"
+    },
+    {
+      "text": "Every line has a design entry: generic-member placeholder where the section is unknown (W16x67, HSS), the matching member template (steel, concrete or timber) only for a section Awatif supports",
+      "passed": true,
+      "evidence": "generic-member placeholder on all 51 lines (W16x67 and HSS unsupported)"
+    },
+    {
+      "text": "Does not add loads or load cases that were not requested",
+      "passed": true,
+      "evidence": "no loads, loadCases or combinations"
+    },
+    {
+      "text": "models/index.ts re-exports the model so platform.ts picks it up",
+      "passed": true,
+      "evidence": "index.ts exports it"
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 1,
+    "total": 10
+  }
+}

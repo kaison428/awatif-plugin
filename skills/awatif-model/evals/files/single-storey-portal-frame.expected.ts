@@ -34,10 +34,9 @@ export const singleStoreyPortalFrame: AppConfig = {
 
   design: [
     {
-      name: "Steel Frame",
-      templateId: "steel-member",
+      name: "Frame Members (placeholder)",
+      templateId: "generic-member",
       geometry: [1, 2, 3],
-      params: { profile: "IPE 300", steelGrade: "S235", lengthFactor: 1 },
     },
   ],
 };
