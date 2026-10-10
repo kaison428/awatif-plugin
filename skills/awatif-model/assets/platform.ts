@@ -1,7 +1,7 @@
 import van from "vanjs-core";
 import "./platform.css";
-import { createApp } from "./createApp";
-import type { AppConfig } from "./data-model";
+import { createApp } from "awatif/templates";
+import type { AppConfig } from "awatif/templates";
 import * as modelExports from "./models";
 
 const { a, h1, main, nav } = van.tags;
