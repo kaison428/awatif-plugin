@@ -36,6 +36,28 @@
         "Does not add loads or load cases that were not requested",
         "models/index.ts re-exports the model so platform.ts picks it up"
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "Read the attached Cornerstone Pressure Washing analytical model screenshot and recreate it as an Awatif model.",
+      "expected_output": "models/cornerstone-analytical-model/model.ts approximates evals/files/cornerstone-analytical-model.expected.ts",
+      "files": [
+        "evals/files/cornerstone_analytical_model.png",
+        "evals/files/cornerstone-analytical-model.expected.ts"
+      ],
+      "expectations": [
+        "Creates a subfolder under /models with a model.ts file",
+        "Uses the annotated dimensions in metres: 21.438 m between the column bases, 4.572 m column dimension, 0.250 m and 1.520 m overhangs",
+        "Roof pitch of 4:12 (ridge ~3.57 m above the eaves, ridge top chord at ~9.04 m), symmetric about mid-span, in the XZ plane (y = 0)",
+        "Top chord panels of ~1.695 m along the slope (~1.608 m in plan), bottom chord nodes offset ~1.07 m from the columns",
+        "Truss modelled as a Warren truss: top chord, bottom chord and zigzag web members as lines, with a vertical at the ridge",
+        "Left overhang of ~0.25 m and right overhang of ~1.52 m beyond the column lines, as unequal cantilevers",
+        "Bottom chord ends linked to the column by short link members (R1 plate), not merged into the column node",
+        "Pinned point-support on the two column base points",
+        "Every line has a design entry: generic-member placeholder for W8x48, HSS and the plate (none is a supported section)",
+        "Does not add loads or load cases that were not requested",
+        "models/index.ts re-exports the model so platform.ts picks it up"
+      ]
     }
   ]
 }
