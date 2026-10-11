@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Eval Inspector</title>
+    <style>
+      :root { --bg:#fff; --fg:#1f2328; --muted:#656d76; --line:#d0d7de; --panel:#f6f8fa; --accent:#0969da; --ok:#1a7f37; --bad:#cf222e; }
+      @media (prefers-color-scheme: dark) { :root { --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --line:#30363d; --panel:#161b22; --accent:#58a6ff; --ok:#3fb950; --bad:#f85149; } }
+      * { box-sizing: border-box; }
+      body { margin:0; height:100vh; display:flex; flex-direction:column; background:var(--bg); color:var(--fg); font:14px system-ui, sans-serif; }
+      header { display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid var(--line); background:var(--panel); }
+      header h1 { font-size:15px; margin:0; }
+      select, button { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:4px 8px; }
+      .tabs { display:flex; gap:4px; padding:6px 12px 0; border-bottom:1px solid var(--line); overflow-x:auto; }
+      .tabs button { border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; background:none; color:var(--muted); cursor:pointer; white-space:nowrap; }
+      .tabs button.active { background:var(--bg); border-color:var(--line); color:var(--fg); font-weight:600; margin-bottom:-1px; }
+      .tabs.runs { background:var(--panel); }
+      .score { font-size:11px; margin-left:6px; }
+      .ok { color:var(--ok); }
+      .bad { color:var(--bad); }
+      main { flex:1; min-height:0; display:flex; }
+      aside { width:380px; flex:none; border-right:1px solid var(--line); overflow:auto; padding:12px; }
+      aside h3 { margin:14px 0 6px; font-size:12px; text-transform:uppercase; color:var(--muted); }
+      aside h3:first-child { margin-top:0; }
+      aside p { margin:0; white-space:pre-wrap; }
+      aside ul { list-style:none; margin:0; padding:0; }
+      aside li { padding:4px 0; border-bottom:1px solid var(--line); }
+      aside li small { display:block; color:var(--muted); }
+      aside img { max-width:100%; border:1px solid var(--line); margin-top:6px; }
+      .view { flex:1; min-width:0; display:flex; flex-direction:column; }
+      #content { flex:1; min-height:0; display:flex; flex-direction:column; }
+      iframe { flex:1; border:0; width:100%; }
+      pre { flex:1; margin:0; padding:12px; overflow:auto; font:12px/1.5 ui-monospace, Consolas, monospace; background:var(--panel); }
+      .empty { padding:24px; color:var(--muted); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Eval Inspector</h1>
+      <label>Iteration <select id="iteration"></select></label>
+      <button id="refresh" title="Rescan the workspace">Refresh</button>
+    </header>
+    <div class="tabs" id="evals"></div>
+    <div class="tabs runs" id="runs"></div>
+    <main>
+      <aside id="side"></aside>
+      <div class="view">
+        <div class="tabs" id="views"></div>
+        <div id="content"></div>
+      </div>
+    </main>
+    <script type="module">
+      const $ = (id) => document.getElementById(id);
+      const el = (tag, props = {}, ...kids) => {
+        const n = Object.assign(document.createElement(tag), props);
+        n.append(...kids);
+        return n;
+      };
+      const store = {
+        get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+        set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+      };
+      const empty = (msg) => $("content").replaceChildren(el("div", { className: "empty" }, msg));
+      const showText = (path) => {
+        const pre = el("pre", {}, "loading…");
+        fetch("/api/file?p=" + encodeURIComponent(path)).then((r) => r.text()).then((t) => (pre.textContent = t));
+        return pre;
+      };
+
+      let data;
+      const state = { iteration: store.get("it"), eval: store.get("ev"), run: store.get("run"), view: store.get("view") || "model", file: null };
+
+      const tabs = (host, items, active, onPick) =>
+        host.replaceChildren(
+          ...items.map(({ id, label, extra }) =>
+            el("button", { className: id === active ? "active" : "", onclick: () => onPick(id) }, label, extra ?? ""),
+          ),
+        );
+      const score = (g) => {
+        if (!g?.summary) return null;
+        const { passed, total } = g.summary;
+        return el("span", { className: "score " + (passed === total ? "ok" : "bad") }, `${passed}/${total}`);
+      };
+
+      async function load() {
+        data = await (await fetch("/api/runs")).json();
+        render();
+      }
+
+      function render() {
+        const its = data.iterations;
+        if (!its.length) return empty("No iterations found in skills/awatif-model-workspace");
+        const it = its.find((i) => i.id === state.iteration) ?? its[0];
+        state.iteration = it.id;
+        $("iteration").replaceChildren(...its.map((i) => el("option", { value: i.id, selected: i.id === it.id }, i.id)));
+
+        const ev = it.evals.find((e) => e.id === state.eval) ?? it.evals[0];
+        if (!ev) return empty("No evals in this iteration");
+        state.eval = ev.id;
+        tabs($("evals"), it.evals.map((e) => ({ id: e.id, label: e.name })), ev.id, (id) => {
+          state.eval = id; state.run = null; store.set("ev", id); render();
+        });
+
+        const run = ev.runs.find((r) => r.id === state.run) ?? ev.runs[0];
+        state.run = run?.id;
+        tabs($("runs"), ev.runs.map((r) => ({ id: r.id, label: r.id, extra: score(r.grading) })), run?.id, (id) => {
+          state.run = id; store.set("run", id); render();
+        });
+
+        renderSide(ev, run);
+        renderView(it, ev, run);
+        store.set("it", it.id);
+      }
+
+      function renderSide(ev, run) {
+        const side = $("side");
+        side.replaceChildren(el("h3", {}, "Prompt"), el("p", {}, ev.prompt || "(none)"));
+        ev.files.filter((f) => /\.(png|jpe?g)$/i.test(f)).forEach((f) =>
+          side.append(el("a", { href: "/" + f, target: "_blank" }, el("img", { src: "/" + f }))),
+        );
+        side.append(el("h3", {}, "Expectations"));
+        const list = el("ul");
+        (run?.grading?.expectations ?? []).forEach((x) =>
+          list.append(
+            el("li", {}, el("span", { className: x.passed ? "ok" : "bad" }, x.passed ? "✓ " : "✗ "), x.text,
+              x.evidence ? el("small", {}, x.evidence) : ""),
+          ),
+        );
+        side.append(list.children.length ? list : el("p", {}, "No grading.json"));
+      }
+
+      function renderView(it, ev, run) {
+        const views = [{ id: "model", label: "Model" }, { id: "source", label: "Source" }, { id: "expected", label: "Expected" }];
+        if (it.benchmark) views.push({ id: "benchmark", label: "Benchmark" });
+        if (!views.some((v) => v.id === state.view)) state.view = "model";
+        tabs($("views"), views, state.view, (id) => { state.view = id; store.set("view", id); renderView(it, ev, run); });
+        const c = $("content");
+
+        if (state.view === "model") {
+          if (!run?.html) return empty("This run has no platform.html");
+          c.replaceChildren(el("iframe", { src: run.html }));
+        } else if (state.view === "source") {
+          const files = (run?.files ?? []).filter((f) => /\.(ts|js)$/.test(f));
+          if (!files.length) return empty("No source files");
+          const cur = files.includes(state.file) ? state.file : files.find((f) => f.endsWith("model.ts")) ?? files[0];
+          state.file = cur;
+          const sel = el("select", { style: "margin:8px 12px", onchange: () => { state.file = sel.value; renderView(it, ev, run); } },
+            ...files.map((f) => el("option", { value: f, selected: f === cur }, f.split("/outputs/")[1])));
+          c.replaceChildren(sel, showText(cur));
+        } else if (state.view === "expected") {
+          const f = ev.files.find((x) => x.endsWith(".ts"));
+          if (!f) return empty("No expected file for this eval");
+          c.replaceChildren(showText(f));
+        } else {
+          c.replaceChildren(showText(it.benchmark));
+        }
+      }
+
+      $("iteration").onchange = (e) => { state.iteration = e.target.value; state.eval = null; state.run = null; render(); };
+      $("refresh").onclick = load;
+      load();
+    </script>
+  </body>
+</html>

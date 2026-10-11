@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "dev": "node inspector/server.mjs"
+  },
   "dependencies": {
     "awatif": "github:madil4/awatif#feat/artifacts",
     "vite": "^8.3.4",
