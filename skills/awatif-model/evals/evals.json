@@ -84,6 +84,31 @@
         "Every line has a design entry: generic-member placeholder, since no section is given",
         "models/index.ts re-exports the model so platform.ts picks it up"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Read the attached CIV312 project building layout and frame layout images and generate a 3D Awatif model of the building from them.",
+      "expected_output": "models/civ312-project-building/model.ts approximates evals/files/civ312-project-building.expected.ts",
+      "files": [
+        "evals/files/civ312_project_building_layout.png",
+        "evals/files/civ312_project_frame_layout.png",
+        "evals/files/civ312-project-building.expected.ts"
+      ],
+      "expectations": [
+        "Creates a subfolder under /models with a model.ts file",
+        "Genuinely 3D: points have distinct x, y and z values (not confined to a single work plane)",
+        "Plan grid of 5 lines (1 to 5) at 4 @ 7.0 m in x and 4 rows (A to D) at 3 @ 7.0 m in y, with A at the north (y = 21 m) and D at the south (y = 0)",
+        "4 storeys of 3.7 m, giving floor levels at z = 0, 3.7, 7.4, 11.1 and 14.8 m",
+        "Storeys 1 and 2 span all 5 lines (20 points per level); storeys 3 and the roof span lines 2 to 4 only (12 points per level), per the Storey 3 and Roof plan and the stepped Section B-B",
+        "Columns at every active grid intersection, one line per storey (64 columns)",
+        "Floor and roof beams along every active grid line in both directions at levels 1 to 4, with none at the base level",
+        "CBF chevron (inverted-V) braces on row D between lines 2 and 4, in every storey, meeting at line 3 (8 brace lines)",
+        "Pinned or fixed point-support on every column base point at z = 0",
+        "Every line has a design entry: generic-member placeholder, since no section is given",
+        "Defines gridLines (grid-system) at x = 0, 7, 14, 21 and 28 m, y = 0, 7, 14 and 21 m, and z = 0, 3.7, 7.4, 11.1 and 14.8 m",
+        "Does not add loads or load cases that were not requested (the images give none)",
+        "models/index.ts re-exports the model so platform.ts picks it up"
+      ]
     }
   ]
 }
