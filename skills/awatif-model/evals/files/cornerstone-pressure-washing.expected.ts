@@ -113,6 +113,26 @@ export const cornerstonePressureWashing: AppConfig = {
     [36, 5], // web diagonal 16
   ],
 
+  gridLines: [
+    {
+      name: "Frame Grid",
+      templateId: "grid-system",
+      geometry: [],
+      params: {
+        x: [
+          { id: "X1", ordinate: 0, visible: true, bubble: "end" },
+          { id: "X2", ordinate: 21.336, visible: true, bubble: "end" },
+        ],
+        y: [{ id: "1", ordinate: 0, visible: true, bubble: "start" }],
+        z: [
+          { id: "Z1", ordinate: 0, visible: true, bubble: "end" },
+          { id: "Z2", ordinate: 5.08, visible: true, bubble: "end" },
+          { id: "Z3", ordinate: 5.963, visible: true, bubble: "end" },
+        ],
+      },
+    },
+  ],
+
   supports: [
     {
       name: "Column Bases",

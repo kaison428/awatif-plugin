@@ -12,6 +12,7 @@
         "3 lines: left column [1,2], beam [2,3], right column [3,4]",
         "Fixed point-support on points 1 and 4",
         "generic-member placeholder assigned to lines 1, 2 and 3 (no section was given)",
+        "Defines gridLines (grid-system) at the column lines (x = 0 and x = 6 m) and the base and eaves levels (z = 0 and z = 3 m)",
         "Does not add loads or load cases that were not requested",
         "models/index.ts re-exports the model so platform.ts picks it up"
       ]
@@ -33,6 +34,7 @@
         "Truss modelled with top chord, bottom chord, verticals and diagonal web members as lines (not a single beam)",
         "Pinned or fixed point-support on the two column base points",
         "Every line has a design entry: generic-member placeholder where the section is unknown (W16x67, HSS), the matching member template (steel, concrete or timber) only for a section Awatif supports",
+        "Defines gridLines (grid-system) at the column lines (x = 0 and x = 21.336 m) and the base, truss underside and column top levels (z = 0, 5.08 and 5.963 m)",
         "Does not add loads or load cases that were not requested",
         "models/index.ts re-exports the model so platform.ts picks it up"
       ]
@@ -55,7 +57,31 @@
         "Bottom chord ends linked to the column by short link members (R1 plate), not merged into the column node",
         "Pinned point-support on the two column base points",
         "Every line has a design entry: generic-member placeholder for W8x48, HSS and the plate (none is a supported section)",
+        "Defines gridLines (grid-system) at the column lines (x = 0 and x = 21.438 m) and the main column node levels (z = 0, 4.572, 4.822 and 5.465 m)",
         "Does not add loads or load cases that were not requested",
+        "models/index.ts re-exports the model so platform.ts picks it up"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Read the attached Hibbler frame example image and generate an Awatif model of the frame from it.",
+      "expected_output": "models/hibbler-frame-example/model.ts approximates evals/files/hibbler-frame-example.expected.ts",
+      "files": [
+        "evals/files/hibbler-frame-example.png",
+        "evals/files/hibbler-frame-example.expected.ts"
+      ],
+      "expectations": [
+        "Creates a subfolder under /models with a model.ts file",
+        "Reads the drawing dimensions and converts them from feet to metres: beam at 16 ft (4.877 m), A to B 12 ft (3.658 m), 10 k load 8 ft further (x = 20 ft, 6.096 m), C 8 ft further (x = 28 ft, 8.534 m)",
+        "Beam A-B-C modelled in the XZ plane (y = 0) with a point at the 10 k load position, splitting the beam into 3 lines",
+        "Two vertical columns of 16 ft (4.877 m): E-B at x = 12 ft and D-C at x = 28 ft, with bases at z = 0",
+        "Fixed point-support at A (the wall)",
+        "Pinned (or fixed) point-support at the column bases E and D",
+        "2 k/ft distributed load (~29.19 kN/m) acting downward (global-z, negative) on the beam from A to B only",
+        "10 k point load (~44.48 kN) acting downward (Fz negative) at 8 ft left of C",
+        "Loads are assigned to a load case, and no loads or load cases beyond those in the image are added",
+        "Defines gridLines (grid-system) at the column lines and load position (x = 0, 3.658, 6.096 and 8.534 m) and the base and beam levels (z = 0 and 4.877 m)",
+        "Every line has a design entry: generic-member placeholder, since no section is given",
         "models/index.ts re-exports the model so platform.ts picks it up"
       ]
     }

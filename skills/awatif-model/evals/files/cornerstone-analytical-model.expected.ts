@@ -112,6 +112,27 @@ export const cornerstoneAnalyticalModel: AppConfig = {
     [17, 18], // 63 ridge vertical
   ],
 
+  gridLines: [
+    {
+      name: "Frame Grid",
+      templateId: "grid-system",
+      geometry: [],
+      params: {
+        x: [
+          { id: "X1", ordinate: 0, visible: true, bubble: "end" },
+          { id: "X2", ordinate: 21.438, visible: true, bubble: "end" },
+        ],
+        y: [{ id: "1", ordinate: 0, visible: true, bubble: "start" }],
+        z: [
+          { id: "Z1", ordinate: 0, visible: true, bubble: "end" },
+          { id: "Z2", ordinate: 4.572, visible: true, bubble: "end" },
+          { id: "Z3", ordinate: 4.822, visible: true, bubble: "end" },
+          { id: "Z4", ordinate: 5.465, visible: true, bubble: "end" },
+        ],
+      },
+    },
+  ],
+
   supports: [
     {
       name: "Column Bases",

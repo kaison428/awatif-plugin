@@ -14,6 +14,25 @@ export const singleStoreyPortalFrame: AppConfig = {
     [3, 4], // right column
   ],
 
+  gridLines: [
+    {
+      name: "Frame Grid",
+      templateId: "grid-system",
+      geometry: [],
+      params: {
+        x: [
+          { id: "X1", ordinate: 0, visible: true, bubble: "end" },
+          { id: "X2", ordinate: 6, visible: true, bubble: "end" },
+        ],
+        y: [{ id: "1", ordinate: 0, visible: true, bubble: "start" }],
+        z: [
+          { id: "Z1", ordinate: 0, visible: true, bubble: "end" },
+          { id: "Z2", ordinate: 3, visible: true, bubble: "end" },
+        ],
+      },
+    },
+  ],
+
   supports: [
     {
       name: "Fixed Bases",
