@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.302",
+  "startedAt": "2026-10-17T15:28:57.862Z",
+  "durationSeconds": 48,
+  "costUsd": 0.1936718,
+  "partial": false,
+  "suite": {
+    "root": "C:\\Users\\kaiso\\Documents\\GitHub\\awatif-plugin",
+    "ablation": "with-without",
+    "judgeModel": "sonnet",
+    "caseFilter": "03*",
+    "threshold": 1,
+    "concurrency": 1,
+    "plugins": [
+      {
+        "name": "awatif-plugin",
+        "version": "0.1.0",
+        "path": "C:\\Users\\kaiso\\Documents\\GitHub\\awatif-plugin"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "03-hibbler-frame-image",
+      "dir": "evals\\03-hibbler-frame-image",
+      "source": "mixed",
+      "promptMarkdown": "Read the image hibbler-frame-example.png in the resources folder and generate an Awatif model of the frame from it. Save it under models/hibbler-frame/.",
+      "model": "opus",
+      "runsPerCase": 3,
+      "timeoutSeconds": 600,
+      "maxTurns": 30,
+      "graders": [
+        {
+          "name": "gridlines-defined",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            },
+            "pattern": "grid-system",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "index-exports-model",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/index.ts"
+            },
+            "pattern": "\\./hibbler-frame",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "loads-converted-to-kn",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            },
+            "pattern": "^(?=[\\s\\S]*-\\s*(28\\.9\\d*|29(\\.[0-4]\\d*)?)\\b)(?=[\\s\\S]*-\\s*44\\.[2-7]\\d*)",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "model-file-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "models/hibbler-frame/model.ts",
+            "exists": true
+          }
+        },
+        {
+          "name": "placeholder-stated",
+          "type": "llm",
+          "weight": 0.5,
+          "graderMarkdown": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because the drawing gives no section.\n- It does not claim that members were sized, checked or verified.\n- It reports the unit conversion or the loads used (about 29.2 kN/m and 44.5 kN) or is otherwise consistent with them.",
+          "config": {
+            "criteria": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because the drawing gives no section.\n- It does not claim that members were sized, checked or verified.\n- It reports the unit conversion or the loads used (about 29.2 kN/m and 44.5 kN) or is otherwise consistent with them.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "points-metres",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            },
+            "pattern": "^(?=[\\s\\S]*\\[\\s*0(\\.0+)?\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*3\\.6[56]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*6\\.(09|10)\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*8\\.5[34]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*3\\.6[56]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*0(\\.0+)?\\s*\\])(?=[\\s\\S]*\\[\\s*8\\.5[34]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*0(\\.0+)?\\s*\\])",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "skill-trigger-display",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "min": 1
+          }
+        },
+        {
+          "name": "topology-supports-loads",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the model against the Hibbler frame drawing: a beam A-B-C in the XZ plane (y = 0) cantilevered from a wall at A, carried by two 16 ft columns at B (12 ft from A) and C (28 ft from A), with a 2 k/ft distributed load over A-B only and a 10 k point load 8 ft left of C. All lengths converted to metres (1 ft = 0.3048 m).\n- Beam level is z = 4.877 m. Column bases are at z = 0 at x = 3.658 (E) and x = 8.534 (D).\n- There is a point on the beam at x = 6.096 (the 10 k load position), so the beam is split into 3 lines: A to B, B to load point, load point to C.\n- There are 5 lines in total: the 3 beam segments and 2 vertical columns, E to B and D to C.\n- A fixed support is at A (the wall). Supports at E and D are pinned or fixed. Nothing is supported at B, C or the load point.\n- The distributed load is about -29.2 kN/m acting downward (global z, negative) on the A-to-B beam line only, not on the other beam segments.\n- The point load is about -44.5 kN in Fz (downward) at the point x = 6.096.\n- Loads are assigned to a load case. There are exactly these 2 loads and no other loads, load cases or combinations.\n- Every line has a design entry. Because no section is given, the entry is a generic-member placeholder.\n- gridLines (grid-system) place gridlines at x = 0, 3.658, 6.096, 8.534 and z = 0, 4.877.",
+          "config": {
+            "criteria": "Judge the model against the Hibbler frame drawing: a beam A-B-C in the XZ plane (y = 0) cantilevered from a wall at A, carried by two 16 ft columns at B (12 ft from A) and C (28 ft from A), with a 2 k/ft distributed load over A-B only and a 10 k point load 8 ft left of C. All lengths converted to metres (1 ft = 0.3048 m).\n- Beam level is z = 4.877 m. Column bases are at z = 0 at x = 3.658 (E) and x = 8.534 (D).\n- There is a point on the beam at x = 6.096 (the 10 k load position), so the beam is split into 3 lines: A to B, B to load point, load point to C.\n- There are 5 lines in total: the 3 beam segments and 2 vertical columns, E to B and D to C.\n- A fixed support is at A (the wall). Supports at E and D are pinned or fixed. Nothing is supported at B, C or the load point.\n- The distributed load is about -29.2 kN/m acting downward (global z, negative) on the A-to-B beam line only, not on the other beam segments.\n- The point load is about -44.5 kN in Fz (downward) at the point x = 6.096.\n- Loads are assigned to a load case. There are exactly these 2 loads and no other loads, load cases or combinations.\n- Every line has a design entry. Because no section is given, the entry is a generic-member placeholder.\n- gridLines (grid-system) place gridlines at x = 0, 3.658, 6.096, 8.534 and z = 0, 4.877.",
+            "focus": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            }
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 10,
+            "costUsd": 0.10690759999999999,
+            "judgeCostUsd": 0.0037019999999999996,
+            "durationSeconds": 23,
+            "startedAt": "2026-10-17T15:28:58.071Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-TBLyry\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "gridlines-defined",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/index.ts\": path \"models/index.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "loads-converted-to-kn",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "models/hibbler-frame/model.ts missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "I couldn't build the model because I can't find the image. There's no `resources/hibbler-frame-example.png` in the working directory (`C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-TBLyry\\home\\cwd`). The folder is empty, and reading that path directly says the file doesn't exist. I also tried searching the parent temp folder and the `awatif-plugin` repo, but those searches were blocked by the current permission mode.\n\nI've stopped here rather than make up the frame's geometry, supports and loads. I haven't created anything under `models/hibbler-frame/`.\n\nTo continue, do one of these:\n- Put the image in `resources/` in the current working directory.\n- Give me the full path to the image.\n- Paste the image straight into the chat.\n\nOnce I can see it, I'll set up the grid lines, nodes, members, supports, loads and member properties from the drawing in `models/hibbler-frame/model.ts`. I'll also add the platform files and start the platform. If the drawing doesn't give a section or material that Awatif supports, I'll use a placeholder and tell you which members have one."
+              },
+              {
+                "name": "points-metres",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-trigger-display",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "topology-supports-loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 6,
+            "costUsd": 0.0867642,
+            "judgeCostUsd": 0.004169999999999999,
+            "durationSeconds": 25,
+            "startedAt": "2026-10-17T15:29:21.305Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-ily2ag\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "gridlines-defined",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/index.ts\": path \"models/index.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "loads-converted-to-kn",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "models/hibbler-frame/model.ts missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "I couldn't find `hibbler-frame-example.png`, so I haven't created the model.\n\n- **The working directory is empty.** There's no `resources/` folder in `C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-ily2ag\\home\\cwd`, and no `models/` folder or Awatif project code either.\n- **It's not in the parent `home` folder.** `home\\resources\\hibbler-frame-example.png` doesn't exist, and that folder only has `.gitconfig` and a `.git` folder.\n- **I couldn't search wider.** A search across the folders above `home` was blocked by the current permission mode.\n\nTo go ahead I need:\n\n1. **The image.** Either the full path to `hibbler-frame-example.png`, or put it in `cwd\\resources\\`.\n2. **The Awatif project.** Is there an existing project I should be working in, such as a clone of the Awatif repo with its `models/` folder? If so, where is it? If there isn't one, I can write a standalone model in the usual Awatif format (`main.ts` and `index.html` using `awatif-ui` and `awatif-fem`, with nodes, elements and the supports, loads and section properties from the figure) under `models/hibbler-frame/`.\n\nOnce I have the image, I'll read the geometry, supports, loads and member properties from it and build the model."
+              },
+              {
+                "name": "points-metres",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "topology-supports-loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0,
+        "passRate": 0,
+        "scoreWithout": 0,
+        "passRateWithout": 0,
+        "delta": 0
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 0,
+    "overallScore": 0,
+    "overallPassRate": 0,
+    "meanDelta": 0
+  }
+}

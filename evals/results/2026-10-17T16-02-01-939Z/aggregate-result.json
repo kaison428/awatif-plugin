@@ -1,0 +1,2287 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.302",
+  "startedAt": "2026-10-17T16:02:01.939Z",
+  "durationSeconds": 1072,
+  "costUsd": 3.883134,
+  "partial": false,
+  "suite": {
+    "root": "C:\\Users\\kaiso\\Documents\\GitHub\\awatif-plugin",
+    "ablation": "with-without",
+    "judgeModel": "sonnet",
+    "threshold": 1,
+    "concurrency": 1,
+    "plugins": [
+      {
+        "name": "awatif-plugin",
+        "version": "0.1.0",
+        "path": "C:\\Users\\kaiso\\Documents\\GitHub\\awatif-plugin"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "01-portal-frame-text",
+      "dir": "evals\\01-portal-frame-text",
+      "source": "prose",
+      "promptMarkdown": "Create an Awatif model of a single-storey steel portal frame, 3 m tall with a 6 m span and fixed connections. Save it under models/portal-frame/.",
+      "model": "opus",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 20,
+      "graders": [
+        {
+          "name": "fixed-supports",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/portal-frame/model.ts"
+            },
+            "pattern": "type:\\s*[\"']fixed[\"']",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "generic-member-placeholder",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/portal-frame/model.ts"
+            },
+            "pattern": "generic-member",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "geometry-topology",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the geometry of the model for a single-storey portal frame, 3 m tall, 6 m span, fixed supports. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- It has exactly 4 points: (0,0,0), (0,0,3), (6,0,3) and (6,0,0). There are no extra or duplicate points.\n- It has exactly 3 lines: a left column from (0,0,0) to (0,0,3), a beam from (0,0,3) to (6,0,3) and a right column from (6,0,3) to (6,0,0). Each line index refers to the correct points.\n- Supports sit on the two base points, (0,0,0) and (6,0,0), and are fixed. Nothing is supported at the eaves points.\n- gridLines (a grid-system entry) place gridlines at x = 0 and 6 and at z = 0 and 3. Extra gridlines, such as at midspan, are fine.",
+          "config": {
+            "criteria": "Judge the geometry of the model for a single-storey portal frame, 3 m tall, 6 m span, fixed supports. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- It has exactly 4 points: (0,0,0), (0,0,3), (6,0,3) and (6,0,0). There are no extra or duplicate points.\n- It has exactly 3 lines: a left column from (0,0,0) to (0,0,3), a beam from (0,0,3) to (6,0,3) and a right column from (6,0,3) to (6,0,0). Each line index refers to the correct points.\n- Supports sit on the two base points, (0,0,0) and (6,0,0), and are fixed. Nothing is supported at the eaves points.\n- gridLines (a grid-system entry) place gridlines at x = 0 and 6 and at z = 0 and 3. Extra gridlines, such as at midspan, are fine.",
+            "focus": {
+              "source": "file",
+              "path": "models/portal-frame/model.ts"
+            }
+          }
+        },
+        {
+          "name": "gridlines-defined",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/portal-frame/model.ts"
+            },
+            "pattern": "grid-system",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "index-exports-model",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/index.ts"
+            },
+            "pattern": "\\./portal-frame",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "model-file-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "models/portal-frame/model.ts",
+            "exists": true
+          }
+        },
+        {
+          "name": "no-invented-loads",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/portal-frame/model.ts"
+            },
+            "pattern": "(loads|loadCases)\\s*:",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "placeholder-stated",
+          "type": "llm",
+          "weight": 0.5,
+          "graderMarkdown": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because no section was specified.\n- It does not claim that members were sized, checked or verified.\n- It does not report inventing loads or load cases.",
+          "config": {
+            "criteria": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because no section was specified.\n- It does not claim that members were sized, checked or verified.\n- It does not report inventing loads or load cases.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "skill-trigger-display",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "min": 1
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.8461538461538461,
+            "passed": false,
+            "turns": 20,
+            "costUsd": 0.28176799999999996,
+            "judgeCostUsd": 0.0183,
+            "durationSeconds": 58,
+            "startedAt": "2026-10-17T16:02:02.490Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-ylRPWk\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fixed-supports",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched type:\\s*[\"']fixed[\"']",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "generic-member-placeholder",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "matched generic-member",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "geometry-topology",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// A single-storey steel portal frame, 6 m span x 3 m tall, in the XZ work\n// plane with fixed bases and rigid beam-column joints. No loads are defined.\nexport const portalFrame: AppConfig = {\n  points: [\n    [0, 0, 0], // 1 base left\n    [0, 0, 3], // 2 eaves left\n    [6, 0, 3], // 3 eaves right\n    [6, 0, 0], // 4 base right\n  ],\n  lines: [\n    [1, 2], // left column\n    [2, 3], // beam\n    [3, 4], // right column\n  ],\n\n  gridLines: [\n    {\n      name: \"Frame Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: 6, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Z1\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Z2\", ordinate: 3, visible: true, bubble: \"end\" },\n        ],\n      },\n    },\n  ],\n\n  loadCases: [\"Dead\"],\n\n  supports: [\n    {\n      name: \"Fixed Bases\",\n      templateId: \"point-support\",\n      geometry: [1, 4],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [1, 2, 3],\n      params: { divisions: 8 },\n    },\n  ],\n\n  // Placeholder: no steel section was specified\n  design: [\n    {\n      name: \"Steel Frame\",\n      templateId: \"generic-member\",\n      geometry: [1, 2, 3],\n    },\n  ],\n};\n"
+              },
+              {
+                "name": "gridlines-defined",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "matched grid-system",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched \\./portal-frame",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": true,
+                "weight": 1,
+                "explanation": "models/portal-frame/model.ts exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-invented-loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern found (expected absent)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "I've created the portal frame model, but I haven't run it. I don't have a shell in this session, so it hasn't been loaded or analysed yet.\n\n**What the model contains** (`models/portal-frame/model.ts`):\n- **Shape:** two 3 m columns and a 6 m beam, drawn in the vertical XZ plane.\n- **Grid lines:** A and B at x = 0 and 6 m, with levels Z1 at the ground and Z2 at the eaves (3 m).\n- **Supports:** both column bases are fixed.\n- **Joints:** the beam and columns share the corner points, so the beam-to-column joints are rigid. No releases are applied.\n- **Mesh:** 8 divisions per member.\n- **Member properties:** placeholder only. You didn't give a steel section, so all three members use a `generic-member` entry with default properties. Tell me the sections (for example the column and beam sizes) and I'll switch them to `steel-member`.\n- **Loads:** none. I added only an empty \"Dead\" load case and no load combinations, because no load values were given.\n\n**Viewer setup:** I added `models/index.ts`, which makes the model available to the viewer. I also put `platform.html`, `platform.ts`, `platform.css` and `vite-env.d.ts` in the project root.\n\n**To view it:** run `bash scripts/run.sh` from the project root, then open `?model=portalFrame`. That script is in the awatif-plugin skill folder, not in this project. Its last line is a stray file path (`skills/awatif-model-workspace/.../platform.html`), which bash will try to run as a command after Vite stops. It's probably harmless, but it's worth deleting from the plugin."
+              },
+              {
+                "name": "skill-trigger-display",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 5,
+            "costUsd": 0.1679124,
+            "judgeCostUsd": 0.008294,
+            "durationSeconds": 47,
+            "startedAt": "2026-10-17T16:03:00.751Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-qhOLtw\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fixed-supports",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-portal-frame-text\" grader focus file \"models/portal-frame/model.ts\": path \"models/portal-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "generic-member-placeholder",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-portal-frame-text\" grader focus file \"models/portal-frame/model.ts\": path \"models/portal-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "geometry-topology",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-portal-frame-text\" grader focus file \"models/portal-frame/model.ts\": path \"models/portal-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-defined",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"01-portal-frame-text\" grader focus file \"models/portal-frame/model.ts\": path \"models/portal-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-portal-frame-text\" grader focus file \"models/index.ts\": path \"models/index.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "models/portal-frame/model.ts missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-invented-loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"01-portal-frame-text\" grader focus file \"models/portal-frame/model.ts\": path \"models/portal-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "I created the portal frame model in `models/portal-frame/`, but I haven't run or tested it. The folder was empty, there was no Awatif project to copy from, and nothing has been installed.\n\n**Files**\n- `main.ts`: the model, built with `awatif-fem` and shown in the `awatif-ui` viewer.\n- `index.html`: the page that loads the model.\n- `package.json`: the libraries it needs (`awatif-fem`, `awatif-ui`, `vanjs-core`) and the Vite dev server.\n\n**Model** (units are kN and m; Z is up)\n- **Shape:** 5 nodes and 4 members: two 3 m columns and a 6 m beam split at midspan so a point load can go there.\n- **Fixed connections:** both column bases are fully fixed, and the beam-to-column joints are rigid (nothing is released at the ends of the members).\n- **Steel and section:** E = 210 GPa and G = 81 GPa, with IPE 300 properties for every member.\n- **Keeping it 2D:** the three upper nodes are held against out-of-plane movement and twisting, so the frame only moves in its own plane.\n- **Loads:** I added 50 kN down at midspan and 10 kN sideways at the left knee, because you didn't give any. Change or remove them as needed.\n- **Live controls:** sliders for height, span and the two loads. They start at 3 m, 6 m, 50 kN and 10 kN.\n\n**Before relying on the results**\n- **API version:** I wrote this from memory of Awatif's published examples, so the exact names in the current release may differ. Those are the `deform`/`analyze` functions, the `elementInputs` keys and the `app({ parameters, mesh })` call. If you have a specific version or example repo, point me at it and I'll match it.\n- **Bending axis:** the IPE 300 strong-axis stiffness (`momentsOfInertiaY`) only applies if Awatif's local member axes make Y the in-plane bending axis for these members. If the frame deflects far more than expected, swap `momentsOfInertiaY` and `momentsOfInertiaZ`.\n\nTo run it: `cd models/portal-frame && npm install && npm run dev`."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.8461538461538461,
+        "passRate": 0,
+        "scoreWithout": 0,
+        "passRateWithout": 0,
+        "delta": 0.8461538461538461
+      }
+    },
+    {
+      "name": "02-braced-frame-text",
+      "dir": "evals\\02-braced-frame-text",
+      "source": "prose",
+      "promptMarkdown": "Create an Awatif model of a 2D steel frame with 2 storeys of 3.5 m and 2 bays of 5 m, with X-bracing in the first bay only. Save it under models/braced-frame/.",
+      "model": "opus",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 20,
+      "graders": [
+        {
+          "name": "braces",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the X-bracing in the model. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- There are exactly 4 diagonal lines, all in the first bay (x = 0 to 5). In each of the 2 storeys there is one from bottom-left to top-right and one from bottom-right to top-left, so they cross as an X. The second bay (x = 5 to 10) has no diagonals.\n- The 4 diagonals are connected to the frame at the corner points of their bay.\n- The 4 diagonals have pin-ended connections: a releases entry with type both-ends is assigned to them. The columns and beams have no releases.",
+          "config": {
+            "criteria": "Judge the X-bracing in the model. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- There are exactly 4 diagonal lines, all in the first bay (x = 0 to 5). In each of the 2 storeys there is one from bottom-left to top-right and one from bottom-right to top-left, so they cross as an X. The second bay (x = 5 to 10) has no diagonals.\n- The 4 diagonals are connected to the frame at the corner points of their bay.\n- The 4 diagonals have pin-ended connections: a releases entry with type both-ends is assigned to them. The columns and beams have no releases.",
+            "focus": {
+              "source": "file",
+              "path": "models/braced-frame/model.ts"
+            }
+          }
+        },
+        {
+          "name": "fixed-bases",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/braced-frame/model.ts"
+            },
+            "pattern": "type:\\s*[\"']fixed[\"']",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "generic-member-placeholder",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/braced-frame/model.ts"
+            },
+            "pattern": "generic-member",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "geometry-topology",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the geometry of the 2D frame in the XZ plane (y = 0): 2 storeys of 3.5 m and 2 bays of 5 m. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- It has 9 points on a grid of x = 0, 5, 10 and z = 0, 3.5, 7, and no other points.\n- It has 6 columns (3 grid lines times 2 storeys), each joining vertically adjacent points. It has 4 beams (2 bays times 2 floor levels, at z = 3.5 and z = 7), each joining horizontally adjacent points.\n- Supports sit on the 3 base points (z = 0) and are fixed. Nothing else is supported.\n- gridLines (a grid-system entry) place gridlines at x = 0, 5, 10 and z = 0, 3.5, 7.",
+          "config": {
+            "criteria": "Judge the geometry of the 2D frame in the XZ plane (y = 0): 2 storeys of 3.5 m and 2 bays of 5 m. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- It has 9 points on a grid of x = 0, 5, 10 and z = 0, 3.5, 7, and no other points.\n- It has 6 columns (3 grid lines times 2 storeys), each joining vertically adjacent points. It has 4 beams (2 bays times 2 floor levels, at z = 3.5 and z = 7), each joining horizontally adjacent points.\n- Supports sit on the 3 base points (z = 0) and are fixed. Nothing else is supported.\n- gridLines (a grid-system entry) place gridlines at x = 0, 5, 10 and z = 0, 3.5, 7.",
+            "focus": {
+              "source": "file",
+              "path": "models/braced-frame/model.ts"
+            }
+          }
+        },
+        {
+          "name": "gridlines-defined",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/braced-frame/model.ts"
+            },
+            "pattern": "grid-system",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "index-exports-model",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/index.ts"
+            },
+            "pattern": "\\./braced-frame",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "model-file-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "models/braced-frame/model.ts",
+            "exists": true
+          }
+        },
+        {
+          "name": "no-invented-loads",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/braced-frame/model.ts"
+            },
+            "pattern": "(loads|loadCases)\\s*:",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "no-pinned-bases",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/braced-frame/model.ts"
+            },
+            "pattern": "type:\\s*[\"']pinned[\"']",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "placeholder-stated",
+          "type": "llm",
+          "weight": 0.5,
+          "graderMarkdown": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because no section was specified.\n- It does not claim that members were sized, checked or verified.\n- It does not report inventing loads or load cases.",
+          "config": {
+            "criteria": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because no section was specified.\n- It does not claim that members were sized, checked or verified.\n- It does not report inventing loads or load cases.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "releases-present",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/braced-frame/model.ts"
+            },
+            "pattern": "templateId:\\s*[\"']releases[\"']",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "skill-trigger-display",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "min": 1
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.631578947368421,
+            "passed": false,
+            "turns": 20,
+            "costUsd": 0.32733320000000005,
+            "judgeCostUsd": 0.03315200000000001,
+            "durationSeconds": 81,
+            "startedAt": "2026-10-17T16:03:47.312Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-ZqA1M3\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "braces",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// A 2-storey, 2-bay steel frame in the XZ work plane: 3.5 m storeys,\n// 5 m bays, with X-bracing in bay A-B on both storeys\nexport const bracedFrame: AppConfig = {\n  points: [\n    [0, 0, 0], // 1 base A\n    [5, 0, 0], // 2 base B\n    [10, 0, 0], // 3 base C\n    [0, 0, 3.5], // 4 level 1 A\n    [5, 0, 3.5], // 5 level 1 B\n    [10, 0, 3.5], // 6 level 1 C\n    [0, 0, 7], // 7 roof A\n    [5, 0, 7], // 8 roof B\n    [10, 0, 7], // 9 roof C\n  ],\n  lines: [\n    [1, 4], // 1 column A, storey 1\n    [4, 7], // 2 column A, storey 2\n    [2, 5], // 3 column B, storey 1\n    [5, 8], // 4 column B, storey 2\n    [3, 6], // 5 column C, storey 1\n    [6, 9], // 6 column C, storey 2\n    [4, 5], // 7 beam A-B, level 1\n    [5, 6], // 8 beam B-C, level 1\n    [7, 8], // 9 beam A-B, roof\n    [8, 9], // 10 beam B-C, roof\n    [1, 5], // 11 brace A-B, storey 1\n    [2, 4], // 12 brace A-B, storey 1\n    [4, 8], // 13 brace A-B, storey 2\n    [5, 7], // 14 brace A-B, storey 2\n  ],\n\n  gridLines: [\n    {\n      name: \"Frame Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: 5, visible: true, bubble: \"end\" },\n          { id: \"C\", ordinate: 10, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Z0\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Z1\", ordinate: 3.5, visible: true, bubble: \"end\" },\n          { id: \"Z2\", ordinate: 7, visible: true, bubble: \"end\" },\n        ],\n      },\n    },\n  ],\n\n  supports: [\n    {\n      name: \"Fixed Bases\",\n      templateId: \"point-support\",\n      geometry: [1, 2, 3],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],\n      params: { divisions: 8 },\n    },\n  ],\n\n  design: [\n    {\n      name: \"Steel Columns\",\n      templateId: \"steel-member\",\n      geometry: [1, 2, 3, 4, 5, 6],\n    },\n    {\n      name: \"Steel Beams\",\n      templateId: \"steel-member\",\n      geometry: [7, 8, 9, 10],\n    },\n    {\n      name: \"Steel Braces\",\n      templateId: \"steel-member\",\n      geometry: [11, 12, 13, 14],\n    },\n  ],\n};\n"
+              },
+              {
+                "name": "fixed-bases",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched type:\\s*[\"']fixed[\"']",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "generic-member-placeholder",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "pattern not found in file models/braced-frame/model.ts",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "geometry-topology",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// A 2-storey, 2-bay steel frame in the XZ work plane: 3.5 m storeys,\n// 5 m bays, with X-bracing in bay A-B on both storeys\nexport const bracedFrame: AppConfig = {\n  points: [\n    [0, 0, 0], // 1 base A\n    [5, 0, 0], // 2 base B\n    [10, 0, 0], // 3 base C\n    [0, 0, 3.5], // 4 level 1 A\n    [5, 0, 3.5], // 5 level 1 B\n    [10, 0, 3.5], // 6 level 1 C\n    [0, 0, 7], // 7 roof A\n    [5, 0, 7], // 8 roof B\n    [10, 0, 7], // 9 roof C\n  ],\n  lines: [\n    [1, 4], // 1 column A, storey 1\n    [4, 7], // 2 column A, storey 2\n    [2, 5], // 3 column B, storey 1\n    [5, 8], // 4 column B, storey 2\n    [3, 6], // 5 column C, storey 1\n    [6, 9], // 6 column C, storey 2\n    [4, 5], // 7 beam A-B, level 1\n    [5, 6], // 8 beam B-C, level 1\n    [7, 8], // 9 beam A-B, roof\n    [8, 9], // 10 beam B-C, roof\n    [1, 5], // 11 brace A-B, storey 1\n    [2, 4], // 12 brace A-B, storey 1\n    [4, 8], // 13 brace A-B, storey 2\n    [5, 7], // 14 brace A-B, storey 2\n  ],\n\n  gridLines: [\n    {\n      name: \"Frame Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: 5, visible: true, bubble: \"end\" },\n          { id: \"C\", ordinate: 10, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Z0\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Z1\", ordinate: 3.5, visible: true, bubble: \"end\" },\n          { id: \"Z2\", ordinate: 7, visible: true, bubble: \"end\" },\n        ],\n      },\n    },\n  ],\n\n  supports: [\n    {\n      name: \"Fixed Bases\",\n      templateId: \"point-support\",\n      geometry: [1, 2, 3],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],\n      params: { divisions: 8 },\n    },\n  ],\n\n  design: [\n    {\n      name: \"Steel Columns\",\n      templateId: \"steel-member\",\n      geometry: [1, 2, 3, 4, 5, 6],\n    },\n    {\n      name: \"Steel Beams\",\n      templateId: \"steel-member\",\n      geometry: [7, 8, 9, 10],\n    },\n    {\n      name: \"Steel Braces\",\n      templateId: \"steel-member\",\n      geometry: [11, 12, 13, 14],\n    },\n  ],\n};\n"
+              },
+              {
+                "name": "gridlines-defined",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "matched grid-system",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched \\./braced-frame",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": true,
+                "weight": 1,
+                "explanation": "models/braced-frame/model.ts exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-invented-loads",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-pinned-bases",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "I've written the braced frame model to `models/braced-frame/model.ts`. I haven't launched it, because there's no shell in this session, so I can't confirm it loads and runs in Awatif yet.\n\n**What's in the model** (2D, drawn in the XZ plane)\n- **Gridlines:** A, B and C at x = 0, 5 and 10 m. Levels at z = 0, 3.5 and 7 m.\n- **Members** (14 in total):\n  - 6 column segments, one per storey on each gridline.\n  - 4 beams, two at level 1 and two at the roof.\n  - 4 braces, an X in bay A–B on each storey. Bay B–C has no bracing.\n- **Supports:** fixed at the three column bases.\n- **Mesh:** every member split into 8 segments.\n- **Design groups:** columns, beams and braces each use the `steel-member` template.\n\n**Things to know**\n- **Sections are placeholders.** You didn't give section sizes, so every member uses the default `steel-member` properties. I set up the three groups so you can give columns, beams and braces their own sections later.\n- **No loads.** You didn't specify any loads, load cases or combinations, so I added none. The analysis won't produce results until you add them.\n- **The two braces in each X aren't joined where they cross.** They only connect to the frame at the corners.\n\n**Other files**\n- `models/index.ts` exports the model so the viewer can find it.\n- `platform.html`, `platform.ts`, `platform.css` and `vite-env.d.ts` are in the project root. They're the browser viewer that loads and shows the models.\n\nTo open it, run `npx vite --open /platform.html` from the project root (that's all the skill's `run.sh` does). This assumes `awatif` and `vanjs-core` are installed in the project; I haven't checked that."
+              },
+              {
+                "name": "releases-present",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern not found in file models/braced-frame/model.ts",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-trigger-display",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 5,
+            "costUsd": 0.20734780000000003,
+            "judgeCostUsd": 0.0062520000000000076,
+            "durationSeconds": 56,
+            "startedAt": "2026-10-17T16:05:07.840Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-YxfOO2\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "braces",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"02-braced-frame-text\" grader focus file \"models/braced-frame/model.ts\": path \"models/braced-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fixed-bases",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"02-braced-frame-text\" grader focus file \"models/braced-frame/model.ts\": path \"models/braced-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "generic-member-placeholder",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"02-braced-frame-text\" grader focus file \"models/braced-frame/model.ts\": path \"models/braced-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "geometry-topology",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"02-braced-frame-text\" grader focus file \"models/braced-frame/model.ts\": path \"models/braced-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-defined",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"02-braced-frame-text\" grader focus file \"models/braced-frame/model.ts\": path \"models/braced-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"02-braced-frame-text\" grader focus file \"models/index.ts\": path \"models/index.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "models/braced-frame/model.ts missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-invented-loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"02-braced-frame-text\" grader focus file \"models/braced-frame/model.ts\": path \"models/braced-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-pinned-bases",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"02-braced-frame-text\" grader focus file \"models/braced-frame/model.ts\": path \"models/braced-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "I've created the braced frame model in `models/braced-frame/`, but I haven't installed, built or run it yet. The repo was empty, so I wrote the Awatif calls from memory rather than checking them against an installed version. Expect to fix a few names if they've changed (see below).\n\n**Files:**\n- `main.ts`: the model\n- `index.html`: the page that loads it\n- `package.json`: dependencies and Vite scripts (`npm install && npm run dev`)\n\n**The model** (units kN and m, drawn in the XZ plane with Z up):\n- **Geometry:** 9 nodes laid out as 3 columns × 3 levels (x = 0, 5, 10 m; z = 0, 3.5, 7 m).\n- **Members:** 6 columns, 4 beams and 4 braces. The braces form an X in bay 1 (x = 0–5 m) on both storeys. The two diagonals of each X cross without a shared node.\n- **Sections:** steel with E = 210 GPa and G = 81 GPa. Columns are HEB200, beams are IPE300 and braces are L80x8.\n- **Supports:** the column bases are fixed. Every other node is restrained against out-of-plane movement and twist, so the frame stays 2D.\n- **Loads:** 20 kN lateral at the left node of each floor. Gravity is 50 kN downward at the middle node of each floor and 25 kN at the end nodes.\n- **Sliders:** storey height, bay width, lateral load and gravity load. The model is re-analysed whenever one changes.\n\n**Things to know:**\n- **Brace behaviour:** I didn't use any element end-release feature. Instead, the braces have a tiny bending stiffness (I = 1e-10 m⁴), so they act almost entirely through axial force.\n- **Bending stiffness:** I gave each section the same value for both bending inertias, so I don't have to depend on how Awatif orients a member's local axes. Out-of-plane movement is restrained, so this doesn't change the in-plane results.\n- **Names to check:** if your Awatif version differs, the likely mismatches are:\n  - the `awatif-fem` and `awatif-ui` package names\n  - `deform`, `analyze`, `getParameters` and `getViewer`\n  - the `ElementInputs` map names, such as `momentsOfInertiaY`\n  - the `settingsObj` viewer option\n\nIf you point me to your Awatif version or an existing example, I can adjust the model to match and check that it runs."
+              },
+              {
+                "name": "releases-present",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"02-braced-frame-text\" grader focus file \"models/braced-frame/model.ts\": path \"models/braced-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.631578947368421,
+        "passRate": 0,
+        "scoreWithout": 0,
+        "passRateWithout": 0,
+        "delta": 0.631578947368421
+      }
+    },
+    {
+      "name": "03-hibbler-frame-image",
+      "dir": "evals\\03-hibbler-frame-image",
+      "source": "mixed",
+      "promptMarkdown": "Read the image hibbler-frame-example.png in the resources folder and generate an Awatif model of the frame from it. Save it under models/hibbler-frame/.",
+      "model": "opus",
+      "runsPerCase": 3,
+      "timeoutSeconds": 600,
+      "maxTurns": 30,
+      "graders": [
+        {
+          "name": "generic-member-placeholder",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            },
+            "pattern": "generic-member",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "geometry",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the geometry against the Hibbler frame drawing: a beam A-B-C in the XZ plane (y = 0) at 16 ft, cantilevered from a wall at A, carried by two 16 ft columns at B (12 ft from A) and C (28 ft from A), with a 10 k load 8 ft left of C. Lengths are converted from feet to metres (1 ft = 0.3048 m). The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- It has exactly 6 points: A (0, 0, 4.877), B (3.658, 0, 4.877), the load point (6.096, 0, 4.877), C (8.534, 0, 4.877), E (3.658, 0, 0) and D (8.534, 0, 0).\n- It has exactly 5 lines: the beam in 3 segments (A to B, B to load point, load point to C) and 2 vertical columns (E to B and D to C).\n- Dimensions are in metres. No coordinate is left in feet.",
+          "config": {
+            "criteria": "Judge the geometry against the Hibbler frame drawing: a beam A-B-C in the XZ plane (y = 0) at 16 ft, cantilevered from a wall at A, carried by two 16 ft columns at B (12 ft from A) and C (28 ft from A), with a 10 k load 8 ft left of C. Lengths are converted from feet to metres (1 ft = 0.3048 m). The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- It has exactly 6 points: A (0, 0, 4.877), B (3.658, 0, 4.877), the load point (6.096, 0, 4.877), C (8.534, 0, 4.877), E (3.658, 0, 0) and D (8.534, 0, 0).\n- It has exactly 5 lines: the beam in 3 segments (A to B, B to load point, load point to C) and 2 vertical columns (E to B and D to C).\n- Dimensions are in metres. No coordinate is left in feet.",
+            "focus": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            }
+          }
+        },
+        {
+          "name": "gridlines-defined",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            },
+            "pattern": "grid-system",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "gridlines-positions",
+          "type": "llm",
+          "weight": 0.5,
+          "graderMarkdown": "Judge the gridLines (a grid-system entry). The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- Gridlines are at x = 0, 3.658, 6.096 and 8.534 m, and at z = 0 and 4.877 m.",
+          "config": {
+            "criteria": "Judge the gridLines (a grid-system entry). The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- Gridlines are at x = 0, 3.658, 6.096 and 8.534 m, and at z = 0 and 4.877 m.",
+            "focus": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            }
+          }
+        },
+        {
+          "name": "index-exports-model",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/index.ts"
+            },
+            "pattern": "\\./hibbler-frame",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "loads",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the loads against the Hibbler frame drawing: a 2 k/ft distributed load on A to B only and a 10 k point load 8 ft left of C. Conversions: 1 k = 4.448 kN, 1 k/ft = 14.594 kN/m. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- The distributed load is 2 k/ft, about 29.19 kN/m in magnitude, and acts downward. A downward load in the global z direction has a negative value. A positive value with global-z acts upward and fails this check.\n- The distributed load is assigned to the beam line from A to B only, and not to the other beam segments or the columns.\n- The point load is 10 k, about 44.48 kN in magnitude, and acts downward, so Fz is negative. It is applied at the load point at x = 6.096 m.\n- Both loads belong to a load case that exists in loadCases.\n- There are exactly these two loads. There are no other loads, load cases or combinations.",
+          "config": {
+            "criteria": "Judge the loads against the Hibbler frame drawing: a 2 k/ft distributed load on A to B only and a 10 k point load 8 ft left of C. Conversions: 1 k = 4.448 kN, 1 k/ft = 14.594 kN/m. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- The distributed load is 2 k/ft, about 29.19 kN/m in magnitude, and acts downward. A downward load in the global z direction has a negative value. A positive value with global-z acts upward and fails this check.\n- The distributed load is assigned to the beam line from A to B only, and not to the other beam segments or the columns.\n- The point load is 10 k, about 44.48 kN in magnitude, and acts downward, so Fz is negative. It is applied at the load point at x = 6.096 m.\n- Both loads belong to a load case that exists in loadCases.\n- There are exactly these two loads. There are no other loads, load cases or combinations.",
+            "focus": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            }
+          }
+        },
+        {
+          "name": "model-file-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "models/hibbler-frame/model.ts",
+            "exists": true
+          }
+        },
+        {
+          "name": "placeholder-stated",
+          "type": "llm",
+          "weight": 0.5,
+          "graderMarkdown": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because the drawing gives no section.\n- It does not claim that members were sized, checked or verified.\n- It reports the unit conversion or the loads used (about 29.2 kN/m and 44.5 kN) or is otherwise consistent with them.",
+          "config": {
+            "criteria": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because the drawing gives no section.\n- It does not claim that members were sized, checked or verified.\n- It reports the unit conversion or the loads used (about 29.2 kN/m and 44.5 kN) or is otherwise consistent with them.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "skill-trigger-display",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "min": 1
+          }
+        },
+        {
+          "name": "supports",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the supports against the Hibbler frame drawing. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- A (the wall at x = 0, z = 4.877) has a fixed support.\n- The column bases E (3.658, 0, 0) and D (8.534, 0, 0) have supports that are pinned or fixed.\n- No other point has a support. In particular B, C and the load point are free.",
+          "config": {
+            "criteria": "Judge the supports against the Hibbler frame drawing. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- A (the wall at x = 0, z = 4.877) has a fixed support.\n- The column bases E (3.658, 0, 0) and D (8.534, 0, 0) have supports that are pinned or fixed.\n- No other point has a support. In particular B, C and the load point are free.",
+            "focus": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            }
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.8571428571428571,
+            "passed": false,
+            "turns": 22,
+            "costUsd": 0.36402179999999995,
+            "judgeCostUsd": 0.06346199999999998,
+            "durationSeconds": 96,
+            "startedAt": "2026-10-17T16:06:04.182Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-6O0G0s\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "generic-member-placeholder",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "matched generic-member",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "geometry",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// Hibbler frame example in the XZ work plane: beam A-B-C built into a wall at\n// A, columns B-E and C-D fixed at the ground. Source units (ft, kip) are\n// converted to m and kN: 1 ft = 0.3048 m, 1 kip = 4.4482 kN\nconst ft = 0.3048;\nconst kip = 4.4482;\n\nexport const hibblerFrame: AppConfig = {\n  points: [\n    [0, 0, 16 * ft], // 1 A wall support\n    [12 * ft, 0, 16 * ft], // 2 B\n    [20 * ft, 0, 16 * ft], // 3 10 k load point\n    [28 * ft, 0, 16 * ft], // 4 C\n    [12 * ft, 0, 0], // 5 E base\n    [28 * ft, 0, 0], // 6 D base\n  ],\n  lines: [\n    [1, 2], // beam AB\n    [2, 3], // beam B to load point\n    [3, 4], // beam load point to C\n    [5, 2], // column EB\n    [6, 4], // column DC\n  ],\n\n  gridLines: [\n    {\n      name: \"Frame Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: 12 * ft, visible: true, bubble: \"end\" },\n          { id: \"P\", ordinate: 20 * ft, visible: true, bubble: \"end\" },\n          { id: \"C\", ordinate: 28 * ft, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Z1\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Z2\", ordinate: 16 * ft, visible: true, bubble: \"end\" },\n        ],\n      },\n    },\n  ],\n\n  loadCases: [\"Applied\"],\n\n  supports: [\n    {\n      name: \"Wall Connection A\",\n      templateId: \"point-support\",\n      geometry: [1],\n      params: { type: \"fixed\" },\n    },\n    {\n      name: \"Fixed Bases E and D\",\n      templateId: \"point-support\",\n      geometry: [5, 6],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  loads: [\n    {\n      name: \"2 k/ft on AB\",\n      templateId: \"distributed-load\",\n      geometry: [1],\n      params: { w: (2 * kip) / ft, direction: \"global-z\" },\n      loadCase: \"Applied\",\n    },\n    {\n      name: \"10 k Point Load\",\n      templateId: \"point-load\",\n      geometry: [3],\n      params: { Fx: 0, Fy: 0, Fz: -10 * kip, Mx: 0, My: 0, Mz: 0 },\n      loadCase: \"Applied\",\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [1, 2, 3, 4, 5],\n      params: { divisions: 8 },\n    },\n  ],\n\n  // Placeholder: the source gives no sections, only constant EI\n  design: [\n    {\n      name: \"Generic Member (EI constant)\",\n      templateId: \"generic-member\",\n      geometry: [1, 2, 3, 4, 5],\n    },\n  ],\n};\n"
+              },
+              {
+                "name": "gridlines-defined",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "matched grid-system",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-positions",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// Hibbler frame example in the XZ work plane: beam A-B-C built into a wall at\n// A, columns B-E and C-D fixed at the ground. Source units (ft, kip) are\n// converted to m and kN: 1 ft = 0.3048 m, 1 kip = 4.4482 kN\nconst ft = 0.3048;\nconst kip = 4.4482;\n\nexport const hibblerFrame: AppConfig = {\n  points: [\n    [0, 0, 16 * ft], // 1 A wall support\n    [12 * ft, 0, 16 * ft], // 2 B\n    [20 * ft, 0, 16 * ft], // 3 10 k load point\n    [28 * ft, 0, 16 * ft], // 4 C\n    [12 * ft, 0, 0], // 5 E base\n    [28 * ft, 0, 0], // 6 D base\n  ],\n  lines: [\n    [1, 2], // beam AB\n    [2, 3], // beam B to load point\n    [3, 4], // beam load point to C\n    [5, 2], // column EB\n    [6, 4], // column DC\n  ],\n\n  gridLines: [\n    {\n      name: \"Frame Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: 12 * ft, visible: true, bubble: \"end\" },\n          { id: \"P\", ordinate: 20 * ft, visible: true, bubble: \"end\" },\n          { id: \"C\", ordinate: 28 * ft, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Z1\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Z2\", ordinate: 16 * ft, visible: true, bubble: \"end\" },\n        ],\n      },\n    },\n  ],\n\n  loadCases: [\"Applied\"],\n\n  supports: [\n    {\n      name: \"Wall Connection A\",\n      templateId: \"point-support\",\n      geometry: [1],\n      params: { type: \"fixed\" },\n    },\n    {\n      name: \"Fixed Bases E and D\",\n      templateId: \"point-support\",\n      geometry: [5, 6],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  loads: [\n    {\n      name: \"2 k/ft on AB\",\n      templateId: \"distributed-load\",\n      geometry: [1],\n      params: { w: (2 * kip) / ft, direction: \"global-z\" },\n      loadCase: \"Applied\",\n    },\n    {\n      name: \"10 k Point Load\",\n      templateId: \"point-load\",\n      geometry: [3],\n      params: { Fx: 0, Fy: 0, Fz: -10 * kip, Mx: 0, My: 0, Mz: 0 },\n      loadCase: \"Applied\",\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [1, 2, 3, 4, 5],\n      params: { divisions: 8 },\n    },\n  ],\n\n  // Placeholder: the source gives no sections, only constant EI\n  design: [\n    {\n      name: \"Generic Member (EI constant)\",\n      templateId: \"generic-member\",\n      geometry: [1, 2, 3, 4, 5],\n    },\n  ],\n};\n"
+              },
+              {
+                "name": "index-exports-model",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched \\./hibbler-frame",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// Hibbler frame example in the XZ work plane: beam A-B-C built into a wall at\n// A, columns B-E and C-D fixed at the ground. Source units (ft, kip) are\n// converted to m and kN: 1 ft = 0.3048 m, 1 kip = 4.4482 kN\nconst ft = 0.3048;\nconst kip = 4.4482;\n\nexport const hibblerFrame: AppConfig = {\n  points: [\n    [0, 0, 16 * ft], // 1 A wall support\n    [12 * ft, 0, 16 * ft], // 2 B\n    [20 * ft, 0, 16 * ft], // 3 10 k load point\n    [28 * ft, 0, 16 * ft], // 4 C\n    [12 * ft, 0, 0], // 5 E base\n    [28 * ft, 0, 0], // 6 D base\n  ],\n  lines: [\n    [1, 2], // beam AB\n    [2, 3], // beam B to load point\n    [3, 4], // beam load point to C\n    [5, 2], // column EB\n    [6, 4], // column DC\n  ],\n\n  gridLines: [\n    {\n      name: \"Frame Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: 12 * ft, visible: true, bubble: \"end\" },\n          { id: \"P\", ordinate: 20 * ft, visible: true, bubble: \"end\" },\n          { id: \"C\", ordinate: 28 * ft, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Z1\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Z2\", ordinate: 16 * ft, visible: true, bubble: \"end\" },\n        ],\n      },\n    },\n  ],\n\n  loadCases: [\"Applied\"],\n\n  supports: [\n    {\n      name: \"Wall Connection A\",\n      templateId: \"point-support\",\n      geometry: [1],\n      params: { type: \"fixed\" },\n    },\n    {\n      name: \"Fixed Bases E and D\",\n      templateId: \"point-support\",\n      geometry: [5, 6],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  loads: [\n    {\n      name: \"2 k/ft on AB\",\n      templateId: \"distributed-load\",\n      geometry: [1],\n      params: { w: (2 * kip) / ft, direction: \"global-z\" },\n      loadCase: \"Applied\",\n    },\n    {\n      name: \"10 k Point Load\",\n      templateId: \"point-load\",\n      geometry: [3],\n      params: { Fx: 0, Fy: 0, Fz: -10 * kip, Mx: 0, My: 0, Mz: 0 },\n      loadCase: \"Applied\",\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [1, 2, 3, 4, 5],\n      params: { divisions: 8 },\n    },\n  ],\n\n  // Placeholder: the source gives no sections, only constant EI\n  design: [\n    {\n      name: \"Generic Member (EI constant)\",\n      templateId: \"generic-member\",\n      geometry: [1, 2, 3, 4, 5],\n    },\n  ],\n};\n"
+              },
+              {
+                "name": "model-file-created",
+                "passed": true,
+                "weight": 1,
+                "explanation": "models/hibbler-frame/model.ts exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "I've created the model at `models/hibbler-frame/model.ts`, but I haven't run it. There's no shell in this session, so I couldn't start the viewer or check whether it compiles.\n\n**What's in the model** (the frame lies in the XZ plane, like the skill's portal frame template):\n- **Geometry:** a beam from A to B to C at 16 ft high, with spans of 12 ft from A to B and 8 ft + 8 ft from B to C. There's an extra point at midspan of BC where the 10 k load acts. Columns run from E up to B and from D up to C.\n- **Grid lines:** at A, B, the load point and C, and at ground and beam level.\n- **Supports:** fixed at A (the wall connection) and at the bases E and D. The figure doesn't say what kind of connection A is. I assumed fixed because it's bolted into the wall, so change it to pinned if your version of the problem says so.\n- **Loads:** only the two shown in the figure, both in a single load case called \"Applied\". There's 2 k/ft along AB and a 10 k downward point load at the midspan of BC. I didn't add any load combinations because the figure doesn't give any.\n- **Mesh and design:** every member is split into 8 elements. Every member uses one `generic-member` with default properties as a **placeholder**, because the figure gives no sections. Since all members share the same properties, EI is constant, which is the usual assumption for this problem.\n\n**Units:** I converted the figure's feet and kips to metres and kN, to match the units the Awatif examples use. The file defines the conversion as `ft = 0.3048` and `kip = 4.4482`. The 2 k/ft load becomes about 29.19 kN/m and the 10 k load about 44.48 kN.\n\n**Two things to check when you open it:**\n- **Direction of the 2 k/ft load:** I copied the skill's portal frame example and gave it a positive value along `global-z`. If it shows up pointing upward, make the value negative.\n- **Package setup:** this folder has no `package.json` or installed `awatif`, `vanjs-core` or `vite`, so those need to be installed first.\n\n**Other files:** I added `models/index.ts` to export the model, and copied `platform.html`, `platform.ts`, `platform.css` and `vite-env.d.ts` into the project root. In `platform.ts` I set `hibblerFrame` as the default model.\n\nTo view it, run `bash scripts/run.sh` from the project root (it runs `npx vite --open /platform.html`)."
+              },
+              {
+                "name": "skill-trigger-display",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "supports",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// Hibbler frame example in the XZ work plane: beam A-B-C built into a wall at\n// A, columns B-E and C-D fixed at the ground. Source units (ft, kip) are\n// converted to m and kN: 1 ft = 0.3048 m, 1 kip = 4.4482 kN\nconst ft = 0.3048;\nconst kip = 4.4482;\n\nexport const hibblerFrame: AppConfig = {\n  points: [\n    [0, 0, 16 * ft], // 1 A wall support\n    [12 * ft, 0, 16 * ft], // 2 B\n    [20 * ft, 0, 16 * ft], // 3 10 k load point\n    [28 * ft, 0, 16 * ft], // 4 C\n    [12 * ft, 0, 0], // 5 E base\n    [28 * ft, 0, 0], // 6 D base\n  ],\n  lines: [\n    [1, 2], // beam AB\n    [2, 3], // beam B to load point\n    [3, 4], // beam load point to C\n    [5, 2], // column EB\n    [6, 4], // column DC\n  ],\n\n  gridLines: [\n    {\n      name: \"Frame Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: 12 * ft, visible: true, bubble: \"end\" },\n          { id: \"P\", ordinate: 20 * ft, visible: true, bubble: \"end\" },\n          { id: \"C\", ordinate: 28 * ft, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Z1\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Z2\", ordinate: 16 * ft, visible: true, bubble: \"end\" },\n        ],\n      },\n    },\n  ],\n\n  loadCases: [\"Applied\"],\n\n  supports: [\n    {\n      name: \"Wall Connection A\",\n      templateId: \"point-support\",\n      geometry: [1],\n      params: { type: \"fixed\" },\n    },\n    {\n      name: \"Fixed Bases E and D\",\n      templateId: \"point-support\",\n      geometry: [5, 6],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  loads: [\n    {\n      name: \"2 k/ft on AB\",\n      templateId: \"distributed-load\",\n      geometry: [1],\n      params: { w: (2 * kip) / ft, direction: \"global-z\" },\n      loadCase: \"Applied\",\n    },\n    {\n      name: \"10 k Point Load\",\n      templateId: \"point-load\",\n      geometry: [3],\n      params: { Fx: 0, Fy: 0, Fz: -10 * kip, Mx: 0, My: 0, Mz: 0 },\n      loadCase: \"Applied\",\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [1, 2, 3, 4, 5],\n      params: { divisions: 8 },\n    },\n  ],\n\n  // Placeholder: the source gives no sections, only constant EI\n  design: [\n    {\n      name: \"Generic Member (EI constant)\",\n      templateId: \"generic-member\",\n      geometry: [1, 2, 3, 4, 5],\n    },\n  ],\n};\n"
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 5,
+            "costUsd": 0.2502596,
+            "judgeCostUsd": 0.011184,
+            "durationSeconds": 74,
+            "startedAt": "2026-10-17T16:07:39.696Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-mL8sFb\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "generic-member-placeholder",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "geometry",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-defined",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-positions",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/index.ts\": path \"models/index.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "models/hibbler-frame/model.ts missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "I created the Awatif model of the frame in `models/hibbler-frame/`, but I haven't run it. There's no Awatif install or project in this workspace, so it hasn't been compiled or checked against a real Awatif version.\n\n**What I read from the figure** (units are kip and ft; the frame sits in the x–z plane with z pointing up):\n\n| Item | Value |\n|---|---|\n| Beam A–B | 12 ft, uniform load of 2 k/ft pointing down |\n| Beam B–C | 16 ft, 10 k point load at midspan (8 ft + 8 ft) |\n| Columns E–B and D–C | 16 ft tall |\n| Supports | A fixed; E and D pinned; joints B and C rigid |\n\n**Files:**\n- `main.ts` sets up the nodes, elements, supports, loads and section properties. It then calls `deform`/`analyze` from `awatif-fem` and displays the result with `getViewer` from `awatif-ui`.\n- `index.html` is the page that loads `main.ts`.\n\n**Modelling choices:**\n- **Supports:** the picture only shows A bolted to a wall and base plates at E and D. \"A fixed, E and D pinned\" comes from how Hibbler states this example (I believe it's his moment-distribution frame problem), not from the drawing itself.\n- **Distributed load:** A–B is split into 12 one-foot pieces, and the 2 k/ft load is applied as the equivalent loads at their nodes (wL/2 forces, plus wL²/12 end moments at A and B). The moments at the nodes come out exact; between nodes they're close but not exact.\n- **10 k load:** I added a node at the middle of B–C to apply it.\n- **Pinned supports:** E and D are fixed against everything except in-plane rotation (about y). This keeps the 3D solver stable out of plane.\n- **Section properties:** the problem only says EI is constant, so I used typical steel values (E = 29,000 ksi, I = 500 in⁴, A = 15 in²). The moments don't depend on these numbers, only the deflections do.\n\n**API version risk:** the Awatif API has changed between releases. I wrote this against the newer `awatif-fem` / `getViewer({ structure: ... })` style from memory. If your version uses the older `app({...})` entry point or different type names, the final `document.body.append(...)` block and the imports will need adjusting. The model data itself won't need to change."
+              },
+              {
+                "name": "supports",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.8571428571428571,
+        "passRate": 0,
+        "scoreWithout": 0,
+        "passRateWithout": 0,
+        "delta": 0.8571428571428571
+      }
+    },
+    {
+      "name": "04-cornerstone-truss-image",
+      "dir": "evals\\04-cornerstone-truss-image",
+      "source": "mixed",
+      "promptMarkdown": "Read the section drawing cornerstone_pressure_washing.png in the resources folder and generate an Awatif model of the steel truss building from it. Save it under models/cornerstone-truss/.",
+      "model": "opus",
+      "runsPerCase": 3,
+      "timeoutSeconds": 600,
+      "maxTurns": 30,
+      "graders": [
+        {
+          "name": "fixed-bases",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/cornerstone-truss/model.ts"
+            },
+            "pattern": "type:\\s*[\"']fixed[\"']",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "geometry",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the dimensions against the Cornerstone Pressure Washing section drawing: 70'-0\" between column lines A and B, column height 19'-6 3/4\", truss underside at 16'-8\" at the columns, roof pitch 4:12. Heights are measured from the column base. 1 ft = 0.3048 m. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- The model is in the XZ plane (y = 0). Columns are at x = 0 and x = 21.34, with base points at z = 0.\n- The column top is at about z = 5.96 and the truss underside at the columns is at about z = 5.08.\n- The roof is symmetric about mid-span (x about 10.67). The pitch is 4:12, so the ridge is about 3.56 m higher than the eaves level.\n- Supports are on the two column base points and nowhere else, and are fixed.\n- No dimension is left in feet or inches.",
+          "config": {
+            "criteria": "Judge the dimensions against the Cornerstone Pressure Washing section drawing: 70'-0\" between column lines A and B, column height 19'-6 3/4\", truss underside at 16'-8\" at the columns, roof pitch 4:12. Heights are measured from the column base. 1 ft = 0.3048 m. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- The model is in the XZ plane (y = 0). Columns are at x = 0 and x = 21.34, with base points at z = 0.\n- The column top is at about z = 5.96 and the truss underside at the columns is at about z = 5.08.\n- The roof is symmetric about mid-span (x about 10.67). The pitch is 4:12, so the ridge is about 3.56 m higher than the eaves level.\n- Supports are on the two column base points and nowhere else, and are fixed.\n- No dimension is left in feet or inches.",
+            "focus": {
+              "source": "file",
+              "path": "models/cornerstone-truss/model.ts"
+            }
+          }
+        },
+        {
+          "name": "gridlines-defined",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/cornerstone-truss/model.ts"
+            },
+            "pattern": "grid-system",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "gridlines-positions",
+          "type": "llm",
+          "weight": 0.5,
+          "graderMarkdown": "Judge the gridLines (a grid-system entry). The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- Gridlines are at the column lines x = 0 and x = 21.34 m, and at the levels z = 0, 5.08 and 5.96 m.",
+          "config": {
+            "criteria": "Judge the gridLines (a grid-system entry). The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- Gridlines are at the column lines x = 0 and x = 21.34 m, and at the levels z = 0, 5.08 and 5.96 m.",
+            "focus": {
+              "source": "file",
+              "path": "models/cornerstone-truss/model.ts"
+            }
+          }
+        },
+        {
+          "name": "index-exports-model",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/index.ts"
+            },
+            "pattern": "\\./cornerstone-truss",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "model-file-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "models/cornerstone-truss/model.ts",
+            "exists": true
+          }
+        },
+        {
+          "name": "no-invented-loads",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/cornerstone-truss/model.ts"
+            },
+            "pattern": "(loads|loadCases)\\s*:",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "no-steel-member-template",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/cornerstone-truss/model.ts"
+            },
+            "pattern": "steel-member",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "placeholder-stated",
+          "type": "llm",
+          "weight": 0.5,
+          "graderMarkdown": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member), because W16x67 and HSS aren't supported sections.\n- It does not claim that members were sized, checked or verified.\n- It does not report inventing loads or load cases.",
+          "config": {
+            "criteria": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member), because W16x67 and HSS aren't supported sections.\n- It does not claim that members were sized, checked or verified.\n- It does not report inventing loads or load cases.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "skill-trigger-display",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "min": 1
+          }
+        },
+        {
+          "name": "truss-members",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge how the truss is modelled. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- It is built from separate line members: a top chord, a bottom chord, vertical members and diagonal web members. It is not a single beam and not just two sloping chords.\n- The web members connect the top and bottom chords at shared points, so the truss is one connected structure.\n- The two columns are separate lines from the truss chords, and they connect to the truss.\n- Every line has a design entry, and none is a steel-member, since W16x67 and HSS are not supported sections.",
+          "config": {
+            "criteria": "Judge how the truss is modelled. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- It is built from separate line members: a top chord, a bottom chord, vertical members and diagonal web members. It is not a single beam and not just two sloping chords.\n- The web members connect the top and bottom chords at shared points, so the truss is one connected structure.\n- The two columns are separate lines from the truss chords, and they connect to the truss.\n- Every line has a design entry, and none is a steel-member, since W16x67 and HSS are not supported sections.",
+            "focus": {
+              "source": "file",
+              "path": "models/cornerstone-truss/model.ts"
+            }
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.6875,
+            "passed": false,
+            "turns": 23,
+            "costUsd": 0.5880738,
+            "judgeCostUsd": 0.08504,
+            "durationSeconds": 167,
+            "startedAt": "2026-10-17T16:08:54.187Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-tYVK5N\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fixed-bases",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched type:\\s*[\"']fixed[\"']",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "geometry",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// Cornerstone Pressure Washing building section: a 70'-0\" clear-span steel\n// truss (HSS chords, 4:12 roof pitch) on W16x67 columns, modelled in the XZ\n// work plane in metres. z = 0 is the floor; column bases sit on the piers at\n// top of footing, 2'-0\" above the floor.\n\nconst ft = 0.3048;\n\nconst span = 70 * ft; // grid A to grid B\nconst pitch = 4 / 12;\nconst zBase = 2 * ft; // T.O.F.\nconst zBottomChord = zBase + (16 + 8 / 12) * ft; // T.O.F. to U/S of truss 16'-8\"\nconst zColumnTop = zBase + (19 + 6.75 / 12) * ft; // height of column 19'-6 3/4\"\nconst leftOverhang = 0.5 * ft; // 6\"\nconst rightOverhang = 5 * ft; // 5'-0\"\nconst halfPanels = 16; // 8 Warren web panels per half truss\nconst step = span / (2 * halfPanels);\n\n// Height of the parallel chords above their eaves level at position x\nconst rise = (x: number) => Math.min(x, span - x) * pitch;\n\nconst points: [number, number, number][] = [];\nconst lines: [number, number][] = [];\nconst addPoint = (x: number, z: number) => points.push([x, 0, z]);\nconst addLine = (group: number[], a: number, b: number) =>\n  group.push(lines.push([a, b]));\n\nconst columns: number[] = [];\nconst topChord: number[] = [];\nconst bottomChord: number[] = [];\nconst webs: number[] = [];\n\n// Panel points along the span: even k on the bottom chord, odd k on the top\n// chord, plus top chord points over both columns and at the ridge\nconst top = new Map<number, number>();\nconst bottom = new Map<number, number>();\nfor (let k = 0; k <= 2 * halfPanels; k++) {\n  const x = k * step;\n  if (k % 2 === 0) bottom.set(k, addPoint(x, zBottomChord + rise(x)));\n  if (k % 2 === 1 || k === 0 || k === halfPanels || k === 2 * halfPanels)\n    top.set(k, addPoint(x, zColumnTop + rise(x)));\n}\nconst last = 2 * halfPanels;\nconst baseA = addPoint(0, zBase);\nconst baseB = addPoint(span, zBase);\nconst eaveA = addPoint(-leftOverhang, zColumnTop - leftOverhang * pitch);\nconst eaveB = addPoint(span + rightOverhang, zColumnTop - rightOverhang * pitch);\n\n// Columns: base -> truss bottom chord -> truss top chord\naddLine(columns, baseA, bottom.get(0)!);\naddLine(columns, bottom.get(0)!, top.get(0)!);\naddLine(columns, baseB, bottom.get(last)!);\naddLine(columns, bottom.get(last)!, top.get(last)!);\n\n// Top chord including the overhangs\nconst topIds = [...top.keys()].sort((a, b) => a - b).map((k) => top.get(k)!);\n[eaveA, ...topIds, eaveB].forEach((p, i, all) => {\n  if (i > 0) addLine(topChord, all[i - 1], p);\n});\n\n// Bottom chord\nconst bottomIds = [...bottom.keys()].sort((a, b) => a - b).map((k) => bottom.get(k)!);\nbottomIds.forEach((p, i) => {\n  if (i > 0) addLine(bottomChord, bottomIds[i - 1], p);\n});\n\n// Warren diagonals and the ridge vertical\nfor (let k = 0; k < last; k++) {\n  const from = k % 2 === 0 ? bottom.get(k)! : top.get(k)!;\n  const to = k % 2 === 0 ? top.get(k + 1)! : bottom.get(k + 1)!;\n  addLine(webs, from, to);\n}\naddLine(webs, bottom.get(halfPanels)!, top.get(halfPanels)!);\n\nexport const cornerstoneTruss: AppConfig = {\n  points,\n  lines,\n\n  gridLines: [\n    {\n      name: \"Section Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Ridge\", ordinate: span / 2, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: span, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Floor\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"T.O.F.\", ordinate: zBase, visible: true, bubble: \"end\" },\n          { id: \"U/S Truss\", ordinate: zBottomChord, visible: true, bubble: \"end\" },\n          { id: \"Column Top\", ordinate: zColumnTop, visible: true, bubble: \"end\" },\n          {\n            id: \"Ridge\",\n            ordinate: zColumnTop + rise(span / 2),\n            visible: true,\n            bubble: \"end\",\n          },\n        ],\n      },\n    },\n  ],\n\n  supports: [\n    {\n      name: \"Fixed Column Bases\",\n      templateId: \"point-support\",\n      geometry: [baseA, baseB],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Column Mesh\",\n      templateId: \"line-mesh\",\n      geometry: columns,\n      params: { divisions: 8 },\n    },\n    {\n      name: \"Truss Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [...topChord, ...bottomChord, ...webs],\n      params: { divisions: 2 },\n    },\n  ],\n\n  // W16x67 and HSS sections are not supported by the steel template, so\n  // generic placeholders stand in until properties are assigned\n  design: [\n    { name: \"W16x67 Columns\", templateId: \"generic-member\", geometry: columns },\n    { name: \"HSS Top Chord\", templateId: \"generic-member\", geometry: topChord },\n    { name: \"HSS Bottom Chord\", templateId: \"generic-member\", geometry: bottomChord },\n    { name: \"HSS Webs\", templateId: \"generic-member\", geometry: webs },\n  ],\n};\n"
+              },
+              {
+                "name": "gridlines-defined",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "matched grid-system",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-positions",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// Cornerstone Pressure Washing building section: a 70'-0\" clear-span steel\n// truss (HSS chords, 4:12 roof pitch) on W16x67 columns, modelled in the XZ\n// work plane in metres. z = 0 is the floor; column bases sit on the piers at\n// top of footing, 2'-0\" above the floor.\n\nconst ft = 0.3048;\n\nconst span = 70 * ft; // grid A to grid B\nconst pitch = 4 / 12;\nconst zBase = 2 * ft; // T.O.F.\nconst zBottomChord = zBase + (16 + 8 / 12) * ft; // T.O.F. to U/S of truss 16'-8\"\nconst zColumnTop = zBase + (19 + 6.75 / 12) * ft; // height of column 19'-6 3/4\"\nconst leftOverhang = 0.5 * ft; // 6\"\nconst rightOverhang = 5 * ft; // 5'-0\"\nconst halfPanels = 16; // 8 Warren web panels per half truss\nconst step = span / (2 * halfPanels);\n\n// Height of the parallel chords above their eaves level at position x\nconst rise = (x: number) => Math.min(x, span - x) * pitch;\n\nconst points: [number, number, number][] = [];\nconst lines: [number, number][] = [];\nconst addPoint = (x: number, z: number) => points.push([x, 0, z]);\nconst addLine = (group: number[], a: number, b: number) =>\n  group.push(lines.push([a, b]));\n\nconst columns: number[] = [];\nconst topChord: number[] = [];\nconst bottomChord: number[] = [];\nconst webs: number[] = [];\n\n// Panel points along the span: even k on the bottom chord, odd k on the top\n// chord, plus top chord points over both columns and at the ridge\nconst top = new Map<number, number>();\nconst bottom = new Map<number, number>();\nfor (let k = 0; k <= 2 * halfPanels; k++) {\n  const x = k * step;\n  if (k % 2 === 0) bottom.set(k, addPoint(x, zBottomChord + rise(x)));\n  if (k % 2 === 1 || k === 0 || k === halfPanels || k === 2 * halfPanels)\n    top.set(k, addPoint(x, zColumnTop + rise(x)));\n}\nconst last = 2 * halfPanels;\nconst baseA = addPoint(0, zBase);\nconst baseB = addPoint(span, zBase);\nconst eaveA = addPoint(-leftOverhang, zColumnTop - leftOverhang * pitch);\nconst eaveB = addPoint(span + rightOverhang, zColumnTop - rightOverhang * pitch);\n\n// Columns: base -> truss bottom chord -> truss top chord\naddLine(columns, baseA, bottom.get(0)!);\naddLine(columns, bottom.get(0)!, top.get(0)!);\naddLine(columns, baseB, bottom.get(last)!);\naddLine(columns, bottom.get(last)!, top.get(last)!);\n\n// Top chord including the overhangs\nconst topIds = [...top.keys()].sort((a, b) => a - b).map((k) => top.get(k)!);\n[eaveA, ...topIds, eaveB].forEach((p, i, all) => {\n  if (i > 0) addLine(topChord, all[i - 1], p);\n});\n\n// Bottom chord\nconst bottomIds = [...bottom.keys()].sort((a, b) => a - b).map((k) => bottom.get(k)!);\nbottomIds.forEach((p, i) => {\n  if (i > 0) addLine(bottomChord, bottomIds[i - 1], p);\n});\n\n// Warren diagonals and the ridge vertical\nfor (let k = 0; k < last; k++) {\n  const from = k % 2 === 0 ? bottom.get(k)! : top.get(k)!;\n  const to = k % 2 === 0 ? top.get(k + 1)! : bottom.get(k + 1)!;\n  addLine(webs, from, to);\n}\naddLine(webs, bottom.get(halfPanels)!, top.get(halfPanels)!);\n\nexport const cornerstoneTruss: AppConfig = {\n  points,\n  lines,\n\n  gridLines: [\n    {\n      name: \"Section Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Ridge\", ordinate: span / 2, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: span, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Floor\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"T.O.F.\", ordinate: zBase, visible: true, bubble: \"end\" },\n          { id: \"U/S Truss\", ordinate: zBottomChord, visible: true, bubble: \"end\" },\n          { id: \"Column Top\", ordinate: zColumnTop, visible: true, bubble: \"end\" },\n          {\n            id: \"Ridge\",\n            ordinate: zColumnTop + rise(span / 2),\n            visible: true,\n            bubble: \"end\",\n          },\n        ],\n      },\n    },\n  ],\n\n  supports: [\n    {\n      name: \"Fixed Column Bases\",\n      templateId: \"point-support\",\n      geometry: [baseA, baseB],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Column Mesh\",\n      templateId: \"line-mesh\",\n      geometry: columns,\n      params: { divisions: 8 },\n    },\n    {\n      name: \"Truss Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [...topChord, ...bottomChord, ...webs],\n      params: { divisions: 2 },\n    },\n  ],\n\n  // W16x67 and HSS sections are not supported by the steel template, so\n  // generic placeholders stand in until properties are assigned\n  design: [\n    { name: \"W16x67 Columns\", templateId: \"generic-member\", geometry: columns },\n    { name: \"HSS Top Chord\", templateId: \"generic-member\", geometry: topChord },\n    { name: \"HSS Bottom Chord\", templateId: \"generic-member\", geometry: bottomChord },\n    { name: \"HSS Webs\", templateId: \"generic-member\", geometry: webs },\n  ],\n};\n"
+              },
+              {
+                "name": "index-exports-model",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched \\./cornerstone-truss",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": true,
+                "weight": 1,
+                "explanation": "models/cornerstone-truss/model.ts exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-invented-loads",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-steel-member-template",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "I've written the truss model to `models/cornerstone-truss/model.ts`, but I haven't run or viewed it. I don't have a shell here, so `bash scripts/run.sh` was never run. The project also has no `package.json`, so `awatif`, `vanjs-core` and `vite` would need installing before it will run.\n\n**What I added**\n- `models/cornerstone-truss/model.ts`: the model, exported as `cornerstoneTruss`. It's a 2D frame in the XZ plane, in metres. Most of the geometry is built by a short loop rather than typed-in coordinates.\n- `models/index.ts`, plus `platform.html`, `platform.ts`, `platform.css` and `vite-env.d.ts` in the project root. The platform opens on this model by default.\n\n**Geometry taken from the drawing**\n- **Columns:** at grids A and B, 70'-0\" apart. The bases are fixed on the piers at top of footing, 2'-0\" above the floor. The columns are 19'-6 ¾\" high.\n- **Truss:** the underside is 16'-8\" above top of footing and the roof slopes at 4:12. The top chord overhangs 5'-0\" at grid B and about 6\" at grid A.\n- **Webs:** a zigzag (Warren) pattern with 8 panels per half, plus a vertical at the ridge. The panels are about 4.6' along the slope, close to the 4'-9 13/16\" dimension.\n- **Grid lines:** A, Ridge and B across the span. Levels are Floor, top of footing, underside of truss, column top and ridge.\n\n**Assumptions to check**\n- **Chord slope:** I made both chords parallel at 4:12. Their spacing comes from the column top minus the truss underside, which gives about 2'-11\" vertically. That doesn't quite match the 3'-1\" dimension, and the bottom chord in the sketch looks slightly flatter, but its slope isn't dimensioned.\n- **Panel count:** 8 panels per half is my choice; the drawing doesn't state a number.\n- **Joints:** all truss joints are rigid, and the bottom chord frames into the columns.\n- **Left overhang:** the 6\" at grid A is read from a small, unclear dimension.\n\n**Placeholders**\n- All four member groups use `generic-member` with default properties: W16x67 columns, HSS top chord, HSS bottom chord and HSS webs. W16x67 isn't a supported section type and the HSS sizes aren't given on the drawing. Replace these with real properties before relying on any results.\n\n**Left out**\n- No loads, load cases or combinations, because the drawing gives no values.\n- The wood rafters, the 2x6 ceiling joists, the roof cladding and the door header aren't modelled."
+              },
+              {
+                "name": "skill-trigger-display",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "truss-members",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// Cornerstone Pressure Washing building section: a 70'-0\" clear-span steel\n// truss (HSS chords, 4:12 roof pitch) on W16x67 columns, modelled in the XZ\n// work plane in metres. z = 0 is the floor; column bases sit on the piers at\n// top of footing, 2'-0\" above the floor.\n\nconst ft = 0.3048;\n\nconst span = 70 * ft; // grid A to grid B\nconst pitch = 4 / 12;\nconst zBase = 2 * ft; // T.O.F.\nconst zBottomChord = zBase + (16 + 8 / 12) * ft; // T.O.F. to U/S of truss 16'-8\"\nconst zColumnTop = zBase + (19 + 6.75 / 12) * ft; // height of column 19'-6 3/4\"\nconst leftOverhang = 0.5 * ft; // 6\"\nconst rightOverhang = 5 * ft; // 5'-0\"\nconst halfPanels = 16; // 8 Warren web panels per half truss\nconst step = span / (2 * halfPanels);\n\n// Height of the parallel chords above their eaves level at position x\nconst rise = (x: number) => Math.min(x, span - x) * pitch;\n\nconst points: [number, number, number][] = [];\nconst lines: [number, number][] = [];\nconst addPoint = (x: number, z: number) => points.push([x, 0, z]);\nconst addLine = (group: number[], a: number, b: number) =>\n  group.push(lines.push([a, b]));\n\nconst columns: number[] = [];\nconst topChord: number[] = [];\nconst bottomChord: number[] = [];\nconst webs: number[] = [];\n\n// Panel points along the span: even k on the bottom chord, odd k on the top\n// chord, plus top chord points over both columns and at the ridge\nconst top = new Map<number, number>();\nconst bottom = new Map<number, number>();\nfor (let k = 0; k <= 2 * halfPanels; k++) {\n  const x = k * step;\n  if (k % 2 === 0) bottom.set(k, addPoint(x, zBottomChord + rise(x)));\n  if (k % 2 === 1 || k === 0 || k === halfPanels || k === 2 * halfPanels)\n    top.set(k, addPoint(x, zColumnTop + rise(x)));\n}\nconst last = 2 * halfPanels;\nconst baseA = addPoint(0, zBase);\nconst baseB = addPoint(span, zBase);\nconst eaveA = addPoint(-leftOverhang, zColumnTop - leftOverhang * pitch);\nconst eaveB = addPoint(span + rightOverhang, zColumnTop - rightOverhang * pitch);\n\n// Columns: base -> truss bottom chord -> truss top chord\naddLine(columns, baseA, bottom.get(0)!);\naddLine(columns, bottom.get(0)!, top.get(0)!);\naddLine(columns, baseB, bottom.get(last)!);\naddLine(columns, bottom.get(last)!, top.get(last)!);\n\n// Top chord including the overhangs\nconst topIds = [...top.keys()].sort((a, b) => a - b).map((k) => top.get(k)!);\n[eaveA, ...topIds, eaveB].forEach((p, i, all) => {\n  if (i > 0) addLine(topChord, all[i - 1], p);\n});\n\n// Bottom chord\nconst bottomIds = [...bottom.keys()].sort((a, b) => a - b).map((k) => bottom.get(k)!);\nbottomIds.forEach((p, i) => {\n  if (i > 0) addLine(bottomChord, bottomIds[i - 1], p);\n});\n\n// Warren diagonals and the ridge vertical\nfor (let k = 0; k < last; k++) {\n  const from = k % 2 === 0 ? bottom.get(k)! : top.get(k)!;\n  const to = k % 2 === 0 ? top.get(k + 1)! : bottom.get(k + 1)!;\n  addLine(webs, from, to);\n}\naddLine(webs, bottom.get(halfPanels)!, top.get(halfPanels)!);\n\nexport const cornerstoneTruss: AppConfig = {\n  points,\n  lines,\n\n  gridLines: [\n    {\n      name: \"Section Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Ridge\", ordinate: span / 2, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: span, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Floor\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"T.O.F.\", ordinate: zBase, visible: true, bubble: \"end\" },\n          { id: \"U/S Truss\", ordinate: zBottomChord, visible: true, bubble: \"end\" },\n          { id: \"Column Top\", ordinate: zColumnTop, visible: true, bubble: \"end\" },\n          {\n            id: \"Ridge\",\n            ordinate: zColumnTop + rise(span / 2),\n            visible: true,\n            bubble: \"end\",\n          },\n        ],\n      },\n    },\n  ],\n\n  supports: [\n    {\n      name: \"Fixed Column Bases\",\n      templateId: \"point-support\",\n      geometry: [baseA, baseB],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Column Mesh\",\n      templateId: \"line-mesh\",\n      geometry: columns,\n      params: { divisions: 8 },\n    },\n    {\n      name: \"Truss Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [...topChord, ...bottomChord, ...webs],\n      params: { divisions: 2 },\n    },\n  ],\n\n  // W16x67 and HSS sections are not supported by the steel template, so\n  // generic placeholders stand in until properties are assigned\n  design: [\n    { name: \"W16x67 Columns\", templateId: \"generic-member\", geometry: columns },\n    { name: \"HSS Top Chord\", templateId: \"generic-member\", geometry: topChord },\n    { name: \"HSS Bottom Chord\", templateId: \"generic-member\", geometry: bottomChord },\n    { name: \"HSS Webs\", templateId: \"generic-member\", geometry: webs },\n  ],\n};\n"
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 8,
+            "costUsd": 0.49417160000000004,
+            "judgeCostUsd": 0.006684000000000023,
+            "durationSeconds": 143,
+            "startedAt": "2026-10-17T16:11:40.947Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-npJ0al\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fixed-bases",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"04-cornerstone-truss-image\" grader focus file \"models/cornerstone-truss/model.ts\": path \"models/cornerstone-truss/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "geometry",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"04-cornerstone-truss-image\" grader focus file \"models/cornerstone-truss/model.ts\": path \"models/cornerstone-truss/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-defined",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"04-cornerstone-truss-image\" grader focus file \"models/cornerstone-truss/model.ts\": path \"models/cornerstone-truss/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-positions",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"04-cornerstone-truss-image\" grader focus file \"models/cornerstone-truss/model.ts\": path \"models/cornerstone-truss/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"04-cornerstone-truss-image\" grader focus file \"models/index.ts\": path \"models/index.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "models/cornerstone-truss/model.ts missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-invented-loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"04-cornerstone-truss-image\" grader focus file \"models/cornerstone-truss/model.ts\": path \"models/cornerstone-truss/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-steel-member-template",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"04-cornerstone-truss-image\" grader focus file \"models/cornerstone-truss/model.ts\": path \"models/cornerstone-truss/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "I've built the Awatif model of the steel truss frame in `models/cornerstone-truss/`, but I haven't run it. I had no shell, so it hasn't been installed, type-checked or opened in a browser. I wrote it against the Awatif API from memory (`deform`/`analyze` from `awatif-fem`, `getParameters`/`getViewer` from `awatif-ui`). If your Awatif version differs, the imports and the `getViewer` call are the first things to check.\n\nTo run it: `cd models/cornerstone-truss && npm install && npm run dev`\n\n**Files**\n- `main.ts`: the model, with the geometry built from parameters.\n- `index.html`, `package.json`: the Vite entry point and dependencies.\n- `README.md`: the values taken from the drawing and the assumptions.\n\n**Taken from the drawing:**\n- **Span:** 70'-0\" from gridline A to B.\n- **Heights:** columns are 19'-6¾\" from top of footing, and the underside of the truss is at 16'-8\".\n- **Truss:** 4:12 scissor truss with parallel HSS top and bottom chords, Warren webs and a vertical at the ridge.\n- **Columns:** W16x67, running up to the top chord.\n- **Overhangs:** 6\" at A and 5'-0\" at B.\n\n**Assumptions you should check.** The section doesn't give these. All of them except the support and connection conditions can be changed in the UI.\n- **Chord and web sizes:** HSS4x4x1/4 chords and HSS2x2x3/16 webs.\n- **Truss spacing:** 4.0 m. This sets the load each truss carries, so it matters most.\n- **Loads:** roof dead 0.5 kPa on the slope, ceiling 0.25 kPa, snow 1.5 kPa on plan, plus steel self-weight. All are applied at the panel points.\n- **Truss depth:** about 0.88 m vertically, the column height minus the heel height, so the column top meets the top chord. That is a little less than the 3'-1\" shown on the drawing.\n- **Web panels:** 8 per half truss, about 1.33 m each. The drawing shows 4'-9 13/16\" (1.47 m).\n- **Supports and connections:** pinned column bases, with the trusses rigidly connected to the columns at both chords.\n- **Out-of-plane restraint:** every node is held against out-of-plane movement, standing in for the purlins and bracing. Because of that, I gave each member the same in-plane bending stiffness about both local axes. This means it doesn't matter which way Awatif orients each member's local axes.\n\nUnits are kN and m, with X along the span and Z up."
+              },
+              {
+                "name": "truss-members",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"04-cornerstone-truss-image\" grader focus file \"models/cornerstone-truss/model.ts\": path \"models/cornerstone-truss/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.6875,
+        "passRate": 0,
+        "scoreWithout": 0,
+        "passRateWithout": 0,
+        "delta": 0.6875
+      }
+    },
+    {
+      "name": "05-civ312-building-image",
+      "dir": "evals\\05-civ312-building-image",
+      "source": "mixed",
+      "promptMarkdown": "Read the images civ312_project_building_layout.png and civ312_project_frame_layout.png in the resources folder and generate a 3D Awatif model of the building from them. Save it under models/civ312-building/.",
+      "model": "opus",
+      "runsPerCase": 3,
+      "timeoutSeconds": 900,
+      "maxTurns": 40,
+      "graders": [
+        {
+          "name": "beams",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the floor and roof beams. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- At each of the levels z = 3.7, 7.4, 11.1 and 14.8, beams run along every active grid line in both the x and the y direction, joining adjacent active points.\n- There are no beams at the base level z = 0.\n- At z = 11.1 and 14.8 there are no beams on lines 1 and 5 (x = 0 and 28).",
+          "config": {
+            "criteria": "Judge the floor and roof beams. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- At each of the levels z = 3.7, 7.4, 11.1 and 14.8, beams run along every active grid line in both the x and the y direction, joining adjacent active points.\n- There are no beams at the base level z = 0.\n- At z = 11.1 and 14.8 there are no beams on lines 1 and 5 (x = 0 and 28).",
+            "focus": {
+              "source": "file",
+              "path": "models/civ312-building/model.ts"
+            }
+          }
+        },
+        {
+          "name": "braces",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the bracing. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- Chevron (V-shaped) braces are on row D (y = 0) between lines 2 and 4 (x = 7 to 21), in every one of the 4 storeys, meeting at line 3 (x = 14). That is at least 8 brace lines. Braces on row A (y = 21) are also acceptable, since the plan shows bold lines there, but they are not required.\n- The brace lines have pin-ended connections: a releases entry with type both-ends is assigned to them. The columns and beams have no releases.",
+          "config": {
+            "criteria": "Judge the bracing. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- Chevron (V-shaped) braces are on row D (y = 0) between lines 2 and 4 (x = 7 to 21), in every one of the 4 storeys, meeting at line 3 (x = 14). That is at least 8 brace lines. Braces on row A (y = 21) are also acceptable, since the plan shows bold lines there, but they are not required.\n- The brace lines have pin-ended connections: a releases entry with type both-ends is assigned to them. The columns and beams have no releases.",
+            "focus": {
+              "source": "file",
+              "path": "models/civ312-building/model.ts"
+            }
+          }
+        },
+        {
+          "name": "columns",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the columns. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- There is a vertical column line in every storey at every active grid intersection, one line per storey.\n- Storeys 1 and 2 have 20 columns each (5 lines by 4 rows). Storeys 3 and 4 have 12 each (lines 2 to 4 by 4 rows). That is 64 columns.\n- No column continues above z = 7.4 on lines 1 and 5.\n- Supports sit on every column base point at z = 0 and are fixed.",
+          "config": {
+            "criteria": "Judge the columns. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- There is a vertical column line in every storey at every active grid intersection, one line per storey.\n- Storeys 1 and 2 have 20 columns each (5 lines by 4 rows). Storeys 3 and 4 have 12 each (lines 2 to 4 by 4 rows). That is 64 columns.\n- No column continues above z = 7.4 on lines 1 and 5.\n- Supports sit on every column base point at z = 0 and are fixed.",
+            "focus": {
+              "source": "file",
+              "path": "models/civ312-building/model.ts"
+            }
+          }
+        },
+        {
+          "name": "fixed-bases",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/civ312-building/model.ts"
+            },
+            "pattern": "type:\\s*[\"']fixed[\"']",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "generic-member-placeholder",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/civ312-building/model.ts"
+            },
+            "pattern": "generic-member",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "gridlines-defined",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/civ312-building/model.ts"
+            },
+            "pattern": "grid-system",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "gridlines-positions",
+          "type": "llm",
+          "weight": 0.5,
+          "graderMarkdown": "Judge the gridLines (a grid-system entry). The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- Gridlines are at x = 0, 7, 14, 21, 28, at y = 0, 7, 14, 21 and at z = 0, 3.7, 7.4, 11.1, 14.8.",
+          "config": {
+            "criteria": "Judge the gridLines (a grid-system entry). The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- Gridlines are at x = 0, 7, 14, 21, 28, at y = 0, 7, 14, 21 and at z = 0, 3.7, 7.4, 11.1, 14.8.",
+            "focus": {
+              "source": "file",
+              "path": "models/civ312-building/model.ts"
+            }
+          }
+        },
+        {
+          "name": "index-exports-model",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/index.ts"
+            },
+            "pattern": "\\./civ312-building",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "model-file-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "models/civ312-building/model.ts",
+            "exists": true
+          }
+        },
+        {
+          "name": "no-invented-loads",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/civ312-building/model.ts"
+            },
+            "pattern": "(loads|loadCases)\\s*:",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "placeholder-stated",
+          "type": "llm",
+          "weight": 0.5,
+          "graderMarkdown": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because no section was specified.\n- It does not claim that members were sized, checked or verified.\n- It does not report inventing loads or load cases.",
+          "config": {
+            "criteria": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because no section was specified.\n- It does not claim that members were sized, checked or verified.\n- It does not report inventing loads or load cases.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "plan-and-levels",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the plan and levels of the 3D building against the CIV312 drawings. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- It is genuinely 3D: points have distinct x, y and z values.\n- Plan lines 1 to 5 are at x = 0, 7, 14, 21, 28. Rows D, C, B, A are at y = 0, 7, 14, 21, with A at the north (y = 21) and D at the south (y = 0).\n- There are 4 storeys of 3.7 m, so levels are at z = 0, 3.7, 7.4, 11.1 and 14.8.\n- Levels z = 0, 3.7 and 7.4 cover all 5 lines, 20 points each. Levels z = 11.1 and 14.8 cover lines 2 to 4 only (x = 7 to 21), 12 points each. That is 84 points in total, with no points outside these.",
+          "config": {
+            "criteria": "Judge the plan and levels of the 3D building against the CIV312 drawings. The model may compute coordinates with constants, loops or helper functions. Evaluate the expressions to the numbers they produce and judge those numbers, not the source text. Tolerance is 1% or 0.02 m, whichever is larger.\n- It is genuinely 3D: points have distinct x, y and z values.\n- Plan lines 1 to 5 are at x = 0, 7, 14, 21, 28. Rows D, C, B, A are at y = 0, 7, 14, 21, with A at the north (y = 21) and D at the south (y = 0).\n- There are 4 storeys of 3.7 m, so levels are at z = 0, 3.7, 7.4, 11.1 and 14.8.\n- Levels z = 0, 3.7 and 7.4 cover all 5 lines, 20 points each. Levels z = 11.1 and 14.8 cover lines 2 to 4 only (x = 7 to 21), 12 points each. That is 84 points in total, with no points outside these.",
+            "focus": {
+              "source": "file",
+              "path": "models/civ312-building/model.ts"
+            }
+          }
+        },
+        {
+          "name": "releases-present",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/civ312-building/model.ts"
+            },
+            "pattern": "templateId:\\s*[\"']releases[\"']",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "skill-trigger-display",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "min": 1
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.8181818181818182,
+            "passed": false,
+            "turns": 23,
+            "costUsd": 0.43999259999999996,
+            "judgeCostUsd": 0.09488999999999992,
+            "durationSeconds": 121,
+            "startedAt": "2026-10-17T16:14:03.992Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-C1Tcpy\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "beams",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// CIV312 project building: a 4-storey steel frame on a 4 x 3 bay grid at 7.0 m\n// (Fig. A.1), stepping back to grids 2-4 at storeys 3 and the roof (Fig. A.2).\n// MRF along grid 2, chevron CBFs along grids A and D between grids 2-4\n// (Figs. A.3-A.5). Storey height 3.7 m. Plan in the XY work plane, Z is up.\n\nconst xs = [0, 7, 14, 21, 28]; // grids 1-5 (west to east)\nconst ys = [0, 7, 14, 21]; // grids D, C, B, A (south to north)\nconst zs = [0, 3.7, 7.4, 11.1, 14.8]; // base, storey 1, 2, 3, roof\n\n// X-grid indices present at each level: full plan up to storey 2, grids 2-4 above\nconst xRange = (level: number) => (level <= 2 ? [0, 1, 2, 3, 4] : [1, 2, 3]);\n\nconst points: [number, number, number][] = [];\nconst pointIds = new Map<string, number>();\nzs.forEach((z, k) =>\n  xRange(k).forEach((i) =>\n    ys.forEach((y, j) => {\n      points.push([xs[i], y, z]);\n      pointIds.set(`${i},${j},${k}`, points.length);\n    }),\n  ),\n);\nconst p = (i: number, j: number, k: number) => pointIds.get(`${i},${j},${k}`)!;\n\nconst lines: [number, number][] = [];\nconst columns: number[] = [];\nconst beams: number[] = [];\nconst braces: number[] = [];\nconst addLine = (group: number[], a: number, b: number) => {\n  lines.push([a, b]);\n  group.push(lines.length);\n};\n\nfor (let k = 1; k < zs.length; k++) {\n  const range = xRange(k);\n\n  // Columns from the level below\n  range.forEach((i) => ys.forEach((_, j) => addLine(columns, p(i, j, k - 1), p(i, j, k))));\n\n  // E-W beams\n  ys.forEach((_, j) =>\n    range.slice(1).forEach((i) => addLine(beams, p(i - 1, j, k), p(i, j, k))),\n  );\n\n  // N-S beams\n  range.forEach((i) =>\n    ys.slice(1).forEach((_, j) => addLine(beams, p(i, j, k), p(i, j + 1, k))),\n  );\n\n  // CBF braces on grids D and A: from the base of grids 2 and 4 up to grid 3\n  [0, 3].forEach((j) => {\n    addLine(braces, p(1, j, k - 1), p(2, j, k));\n    addLine(braces, p(3, j, k - 1), p(2, j, k));\n  });\n}\n\nconst bases = xRange(0).flatMap((i) => ys.map((_, j) => p(i, j, 0)));\n\nexport const civ312Building: AppConfig = {\n  points,\n  lines,\n\n  gridLines: [\n    {\n      name: \"Building Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\"1\", \"2\", \"3\", \"4\", \"5\"].map((id, i) => ({\n          id,\n          ordinate: xs[i],\n          visible: true,\n          bubble: \"end\",\n        })),\n        y: [\"D\", \"C\", \"B\", \"A\"].map((id, j) => ({\n          id,\n          ordinate: ys[j],\n          visible: true,\n          bubble: \"start\",\n        })),\n        z: [\"Base\", \"Storey 1\", \"Storey 2\", \"Storey 3\", \"Roof\"].map((id, k) => ({\n          id,\n          ordinate: zs[k],\n          visible: true,\n          bubble: \"end\",\n        })),\n      },\n    },\n  ],\n\n  supports: [\n    {\n      name: \"Fixed Bases\",\n      templateId: \"point-support\",\n      geometry: bases,\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: lines.map((_, index) => index + 1),\n      params: { divisions: 4 },\n    },\n  ],\n\n  // Sections are not given in the drawings: generic placeholders\n  design: [\n    { name: \"Columns\", templateId: \"generic-member\", geometry: columns },\n    { name: \"Beams\", templateId: \"generic-member\", geometry: beams },\n    { name: \"CBF Braces\", templateId: \"generic-member\", geometry: braces },\n  ],\n\n  display: { workPlane: \"XY\", view2D: false },\n};\n"
+              },
+              {
+                "name": "braces",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// CIV312 project building: a 4-storey steel frame on a 4 x 3 bay grid at 7.0 m\n// (Fig. A.1), stepping back to grids 2-4 at storeys 3 and the roof (Fig. A.2).\n// MRF along grid 2, chevron CBFs along grids A and D between grids 2-4\n// (Figs. A.3-A.5). Storey height 3.7 m. Plan in the XY work plane, Z is up.\n\nconst xs = [0, 7, 14, 21, 28]; // grids 1-5 (west to east)\nconst ys = [0, 7, 14, 21]; // grids D, C, B, A (south to north)\nconst zs = [0, 3.7, 7.4, 11.1, 14.8]; // base, storey 1, 2, 3, roof\n\n// X-grid indices present at each level: full plan up to storey 2, grids 2-4 above\nconst xRange = (level: number) => (level <= 2 ? [0, 1, 2, 3, 4] : [1, 2, 3]);\n\nconst points: [number, number, number][] = [];\nconst pointIds = new Map<string, number>();\nzs.forEach((z, k) =>\n  xRange(k).forEach((i) =>\n    ys.forEach((y, j) => {\n      points.push([xs[i], y, z]);\n      pointIds.set(`${i},${j},${k}`, points.length);\n    }),\n  ),\n);\nconst p = (i: number, j: number, k: number) => pointIds.get(`${i},${j},${k}`)!;\n\nconst lines: [number, number][] = [];\nconst columns: number[] = [];\nconst beams: number[] = [];\nconst braces: number[] = [];\nconst addLine = (group: number[], a: number, b: number) => {\n  lines.push([a, b]);\n  group.push(lines.length);\n};\n\nfor (let k = 1; k < zs.length; k++) {\n  const range = xRange(k);\n\n  // Columns from the level below\n  range.forEach((i) => ys.forEach((_, j) => addLine(columns, p(i, j, k - 1), p(i, j, k))));\n\n  // E-W beams\n  ys.forEach((_, j) =>\n    range.slice(1).forEach((i) => addLine(beams, p(i - 1, j, k), p(i, j, k))),\n  );\n\n  // N-S beams\n  range.forEach((i) =>\n    ys.slice(1).forEach((_, j) => addLine(beams, p(i, j, k), p(i, j + 1, k))),\n  );\n\n  // CBF braces on grids D and A: from the base of grids 2 and 4 up to grid 3\n  [0, 3].forEach((j) => {\n    addLine(braces, p(1, j, k - 1), p(2, j, k));\n    addLine(braces, p(3, j, k - 1), p(2, j, k));\n  });\n}\n\nconst bases = xRange(0).flatMap((i) => ys.map((_, j) => p(i, j, 0)));\n\nexport const civ312Building: AppConfig = {\n  points,\n  lines,\n\n  gridLines: [\n    {\n      name: \"Building Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\"1\", \"2\", \"3\", \"4\", \"5\"].map((id, i) => ({\n          id,\n          ordinate: xs[i],\n          visible: true,\n          bubble: \"end\",\n        })),\n        y: [\"D\", \"C\", \"B\", \"A\"].map((id, j) => ({\n          id,\n          ordinate: ys[j],\n          visible: true,\n          bubble: \"start\",\n        })),\n        z: [\"Base\", \"Storey 1\", \"Storey 2\", \"Storey 3\", \"Roof\"].map((id, k) => ({\n          id,\n          ordinate: zs[k],\n          visible: true,\n          bubble: \"end\",\n        })),\n      },\n    },\n  ],\n\n  supports: [\n    {\n      name: \"Fixed Bases\",\n      templateId: \"point-support\",\n      geometry: bases,\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: lines.map((_, index) => index + 1),\n      params: { divisions: 4 },\n    },\n  ],\n\n  // Sections are not given in the drawings: generic placeholders\n  design: [\n    { name: \"Columns\", templateId: \"generic-member\", geometry: columns },\n    { name: \"Beams\", templateId: \"generic-member\", geometry: beams },\n    { name: \"CBF Braces\", templateId: \"generic-member\", geometry: braces },\n  ],\n\n  display: { workPlane: \"XY\", view2D: false },\n};\n"
+              },
+              {
+                "name": "columns",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// CIV312 project building: a 4-storey steel frame on a 4 x 3 bay grid at 7.0 m\n// (Fig. A.1), stepping back to grids 2-4 at storeys 3 and the roof (Fig. A.2).\n// MRF along grid 2, chevron CBFs along grids A and D between grids 2-4\n// (Figs. A.3-A.5). Storey height 3.7 m. Plan in the XY work plane, Z is up.\n\nconst xs = [0, 7, 14, 21, 28]; // grids 1-5 (west to east)\nconst ys = [0, 7, 14, 21]; // grids D, C, B, A (south to north)\nconst zs = [0, 3.7, 7.4, 11.1, 14.8]; // base, storey 1, 2, 3, roof\n\n// X-grid indices present at each level: full plan up to storey 2, grids 2-4 above\nconst xRange = (level: number) => (level <= 2 ? [0, 1, 2, 3, 4] : [1, 2, 3]);\n\nconst points: [number, number, number][] = [];\nconst pointIds = new Map<string, number>();\nzs.forEach((z, k) =>\n  xRange(k).forEach((i) =>\n    ys.forEach((y, j) => {\n      points.push([xs[i], y, z]);\n      pointIds.set(`${i},${j},${k}`, points.length);\n    }),\n  ),\n);\nconst p = (i: number, j: number, k: number) => pointIds.get(`${i},${j},${k}`)!;\n\nconst lines: [number, number][] = [];\nconst columns: number[] = [];\nconst beams: number[] = [];\nconst braces: number[] = [];\nconst addLine = (group: number[], a: number, b: number) => {\n  lines.push([a, b]);\n  group.push(lines.length);\n};\n\nfor (let k = 1; k < zs.length; k++) {\n  const range = xRange(k);\n\n  // Columns from the level below\n  range.forEach((i) => ys.forEach((_, j) => addLine(columns, p(i, j, k - 1), p(i, j, k))));\n\n  // E-W beams\n  ys.forEach((_, j) =>\n    range.slice(1).forEach((i) => addLine(beams, p(i - 1, j, k), p(i, j, k))),\n  );\n\n  // N-S beams\n  range.forEach((i) =>\n    ys.slice(1).forEach((_, j) => addLine(beams, p(i, j, k), p(i, j + 1, k))),\n  );\n\n  // CBF braces on grids D and A: from the base of grids 2 and 4 up to grid 3\n  [0, 3].forEach((j) => {\n    addLine(braces, p(1, j, k - 1), p(2, j, k));\n    addLine(braces, p(3, j, k - 1), p(2, j, k));\n  });\n}\n\nconst bases = xRange(0).flatMap((i) => ys.map((_, j) => p(i, j, 0)));\n\nexport const civ312Building: AppConfig = {\n  points,\n  lines,\n\n  gridLines: [\n    {\n      name: \"Building Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\"1\", \"2\", \"3\", \"4\", \"5\"].map((id, i) => ({\n          id,\n          ordinate: xs[i],\n          visible: true,\n          bubble: \"end\",\n        })),\n        y: [\"D\", \"C\", \"B\", \"A\"].map((id, j) => ({\n          id,\n          ordinate: ys[j],\n          visible: true,\n          bubble: \"start\",\n        })),\n        z: [\"Base\", \"Storey 1\", \"Storey 2\", \"Storey 3\", \"Roof\"].map((id, k) => ({\n          id,\n          ordinate: zs[k],\n          visible: true,\n          bubble: \"end\",\n        })),\n      },\n    },\n  ],\n\n  supports: [\n    {\n      name: \"Fixed Bases\",\n      templateId: \"point-support\",\n      geometry: bases,\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: lines.map((_, index) => index + 1),\n      params: { divisions: 4 },\n    },\n  ],\n\n  // Sections are not given in the drawings: generic placeholders\n  design: [\n    { name: \"Columns\", templateId: \"generic-member\", geometry: columns },\n    { name: \"Beams\", templateId: \"generic-member\", geometry: beams },\n    { name: \"CBF Braces\", templateId: \"generic-member\", geometry: braces },\n  ],\n\n  display: { workPlane: \"XY\", view2D: false },\n};\n"
+              },
+              {
+                "name": "fixed-bases",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched type:\\s*[\"']fixed[\"']",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "generic-member-placeholder",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "matched generic-member",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-defined",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "matched grid-system",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-positions",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// CIV312 project building: a 4-storey steel frame on a 4 x 3 bay grid at 7.0 m\n// (Fig. A.1), stepping back to grids 2-4 at storeys 3 and the roof (Fig. A.2).\n// MRF along grid 2, chevron CBFs along grids A and D between grids 2-4\n// (Figs. A.3-A.5). Storey height 3.7 m. Plan in the XY work plane, Z is up.\n\nconst xs = [0, 7, 14, 21, 28]; // grids 1-5 (west to east)\nconst ys = [0, 7, 14, 21]; // grids D, C, B, A (south to north)\nconst zs = [0, 3.7, 7.4, 11.1, 14.8]; // base, storey 1, 2, 3, roof\n\n// X-grid indices present at each level: full plan up to storey 2, grids 2-4 above\nconst xRange = (level: number) => (level <= 2 ? [0, 1, 2, 3, 4] : [1, 2, 3]);\n\nconst points: [number, number, number][] = [];\nconst pointIds = new Map<string, number>();\nzs.forEach((z, k) =>\n  xRange(k).forEach((i) =>\n    ys.forEach((y, j) => {\n      points.push([xs[i], y, z]);\n      pointIds.set(`${i},${j},${k}`, points.length);\n    }),\n  ),\n);\nconst p = (i: number, j: number, k: number) => pointIds.get(`${i},${j},${k}`)!;\n\nconst lines: [number, number][] = [];\nconst columns: number[] = [];\nconst beams: number[] = [];\nconst braces: number[] = [];\nconst addLine = (group: number[], a: number, b: number) => {\n  lines.push([a, b]);\n  group.push(lines.length);\n};\n\nfor (let k = 1; k < zs.length; k++) {\n  const range = xRange(k);\n\n  // Columns from the level below\n  range.forEach((i) => ys.forEach((_, j) => addLine(columns, p(i, j, k - 1), p(i, j, k))));\n\n  // E-W beams\n  ys.forEach((_, j) =>\n    range.slice(1).forEach((i) => addLine(beams, p(i - 1, j, k), p(i, j, k))),\n  );\n\n  // N-S beams\n  range.forEach((i) =>\n    ys.slice(1).forEach((_, j) => addLine(beams, p(i, j, k), p(i, j + 1, k))),\n  );\n\n  // CBF braces on grids D and A: from the base of grids 2 and 4 up to grid 3\n  [0, 3].forEach((j) => {\n    addLine(braces, p(1, j, k - 1), p(2, j, k));\n    addLine(braces, p(3, j, k - 1), p(2, j, k));\n  });\n}\n\nconst bases = xRange(0).flatMap((i) => ys.map((_, j) => p(i, j, 0)));\n\nexport const civ312Building: AppConfig = {\n  points,\n  lines,\n\n  gridLines: [\n    {\n      name: \"Building Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\"1\", \"2\", \"3\", \"4\", \"5\"].map((id, i) => ({\n          id,\n          ordinate: xs[i],\n          visible: true,\n          bubble: \"end\",\n        })),\n        y: [\"D\", \"C\", \"B\", \"A\"].map((id, j) => ({\n          id,\n          ordinate: ys[j],\n          visible: true,\n          bubble: \"start\",\n        })),\n        z: [\"Base\", \"Storey 1\", \"Storey 2\", \"Storey 3\", \"Roof\"].map((id, k) => ({\n          id,\n          ordinate: zs[k],\n          visible: true,\n          bubble: \"end\",\n        })),\n      },\n    },\n  ],\n\n  supports: [\n    {\n      name: \"Fixed Bases\",\n      templateId: \"point-support\",\n      geometry: bases,\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: lines.map((_, index) => index + 1),\n      params: { divisions: 4 },\n    },\n  ],\n\n  // Sections are not given in the drawings: generic placeholders\n  design: [\n    { name: \"Columns\", templateId: \"generic-member\", geometry: columns },\n    { name: \"Beams\", templateId: \"generic-member\", geometry: beams },\n    { name: \"CBF Braces\", templateId: \"generic-member\", geometry: braces },\n  ],\n\n  display: { workPlane: \"XY\", view2D: false },\n};\n"
+              },
+              {
+                "name": "index-exports-model",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched \\./civ312-building",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": true,
+                "weight": 1,
+                "explanation": "models/civ312-building/model.ts exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-invented-loads",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "I've built the model from the two drawings and saved it to `models/civ312-building/model.ts`. I haven't run it or opened it in the viewer, because I had no shell in this session. To view it, run `bash scripts/run.sh` (it calls `npx vite --open /platform.html`); `awatif` and `vanjs-core` need to be installed first.\n\n**Geometry taken from the drawings**\n- **Grid:** gridlines 1–5 run west to east at 7.0 m spacing (x = 0–28 m). Gridlines D→A run south to north at 7.0 m spacing (y = 0–21 m). Levels are every 3.7 m: base, storeys 1–3 and the roof at 14.8 m. The plan is in the XY workplane with Z up.\n- **Setback:** storeys 1–2 cover the full 4 × 3 bays. Storey 3 and the roof cover gridlines 2–4 only, matching Fig. A.2 and Section B-B.\n- **Members:** 64 columns, 96 beams running in both directions at every level, and 16 braces, making 176 lines on 84 points.\n- **Braced frames (CBF):** on gridlines A and D between gridlines 2 and 4, every storey has two braces. They run from the bottom of gridlines 2 and 4 up to the top of gridline 3, following the pattern in Section B-B.\n- **Moment frame (MRF):** this is gridline 2. Its geometry comes out of the grid; nothing else marks it as a moment frame.\n- **Supports:** all 20 column bases are fixed.\n\n**Placeholders and things left out**\n- **Sections:** the drawings give no section sizes, so columns, beams and braces each use a `generic-member` placeholder with default properties. Replace them with the real sections before relying on any results.\n- **Connections:** I didn't model the pinned connections shown on the gravity beams in the plans, so every joint is currently rigid. That means the gravity frames, and not just the MRF on gridline 2, will take lateral load.\n- **Infill beams:** I left out the floor infill beams shown between B and C.\n- **Loads:** the drawings give no loads, load cases or combinations, so none are defined.\n\nI also added the platform files to the project root: `platform.html`, `platform.ts` (which opens this model by default), `platform.css` and `vite-env.d.ts`. There's also a `models/index.ts` that registers the model."
+              },
+              {
+                "name": "plan-and-levels",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// CIV312 project building: a 4-storey steel frame on a 4 x 3 bay grid at 7.0 m\n// (Fig. A.1), stepping back to grids 2-4 at storeys 3 and the roof (Fig. A.2).\n// MRF along grid 2, chevron CBFs along grids A and D between grids 2-4\n// (Figs. A.3-A.5). Storey height 3.7 m. Plan in the XY work plane, Z is up.\n\nconst xs = [0, 7, 14, 21, 28]; // grids 1-5 (west to east)\nconst ys = [0, 7, 14, 21]; // grids D, C, B, A (south to north)\nconst zs = [0, 3.7, 7.4, 11.1, 14.8]; // base, storey 1, 2, 3, roof\n\n// X-grid indices present at each level: full plan up to storey 2, grids 2-4 above\nconst xRange = (level: number) => (level <= 2 ? [0, 1, 2, 3, 4] : [1, 2, 3]);\n\nconst points: [number, number, number][] = [];\nconst pointIds = new Map<string, number>();\nzs.forEach((z, k) =>\n  xRange(k).forEach((i) =>\n    ys.forEach((y, j) => {\n      points.push([xs[i], y, z]);\n      pointIds.set(`${i},${j},${k}`, points.length);\n    }),\n  ),\n);\nconst p = (i: number, j: number, k: number) => pointIds.get(`${i},${j},${k}`)!;\n\nconst lines: [number, number][] = [];\nconst columns: number[] = [];\nconst beams: number[] = [];\nconst braces: number[] = [];\nconst addLine = (group: number[], a: number, b: number) => {\n  lines.push([a, b]);\n  group.push(lines.length);\n};\n\nfor (let k = 1; k < zs.length; k++) {\n  const range = xRange(k);\n\n  // Columns from the level below\n  range.forEach((i) => ys.forEach((_, j) => addLine(columns, p(i, j, k - 1), p(i, j, k))));\n\n  // E-W beams\n  ys.forEach((_, j) =>\n    range.slice(1).forEach((i) => addLine(beams, p(i - 1, j, k), p(i, j, k))),\n  );\n\n  // N-S beams\n  range.forEach((i) =>\n    ys.slice(1).forEach((_, j) => addLine(beams, p(i, j, k), p(i, j + 1, k))),\n  );\n\n  // CBF braces on grids D and A: from the base of grids 2 and 4 up to grid 3\n  [0, 3].forEach((j) => {\n    addLine(braces, p(1, j, k - 1), p(2, j, k));\n    addLine(braces, p(3, j, k - 1), p(2, j, k));\n  });\n}\n\nconst bases = xRange(0).flatMap((i) => ys.map((_, j) => p(i, j, 0)));\n\nexport const civ312Building: AppConfig = {\n  points,\n  lines,\n\n  gridLines: [\n    {\n      name: \"Building Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\"1\", \"2\", \"3\", \"4\", \"5\"].map((id, i) => ({\n          id,\n          ordinate: xs[i],\n          visible: true,\n          bubble: \"end\",\n        })),\n        y: [\"D\", \"C\", \"B\", \"A\"].map((id, j) => ({\n          id,\n          ordinate: ys[j],\n          visible: true,\n          bubble: \"start\",\n        })),\n        z: [\"Base\", \"Storey 1\", \"Storey 2\", \"Storey 3\", \"Roof\"].map((id, k) => ({\n          id,\n          ordinate: zs[k],\n          visible: true,\n          bubble: \"end\",\n        })),\n      },\n    },\n  ],\n\n  supports: [\n    {\n      name: \"Fixed Bases\",\n      templateId: \"point-support\",\n      geometry: bases,\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: lines.map((_, index) => index + 1),\n      params: { divisions: 4 },\n    },\n  ],\n\n  // Sections are not given in the drawings: generic placeholders\n  design: [\n    { name: \"Columns\", templateId: \"generic-member\", geometry: columns },\n    { name: \"Beams\", templateId: \"generic-member\", geometry: beams },\n    { name: \"CBF Braces\", templateId: \"generic-member\", geometry: braces },\n  ],\n\n  display: { workPlane: \"XY\", view2D: false },\n};\n"
+              },
+              {
+                "name": "releases-present",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern not found in file models/civ312-building/model.ts",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-trigger-display",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 8,
+            "costUsd": 0.3208328,
+            "judgeCostUsd": 0.010077999999999976,
+            "durationSeconds": 93,
+            "startedAt": "2026-10-17T16:16:04.800Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-ioRKvq\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "beams",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/civ312-building/model.ts\": path \"models/civ312-building/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "braces",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/civ312-building/model.ts\": path \"models/civ312-building/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "columns",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/civ312-building/model.ts\": path \"models/civ312-building/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fixed-bases",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/civ312-building/model.ts\": path \"models/civ312-building/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "generic-member-placeholder",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/civ312-building/model.ts\": path \"models/civ312-building/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-defined",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/civ312-building/model.ts\": path \"models/civ312-building/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "gridlines-positions",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/civ312-building/model.ts\": path \"models/civ312-building/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/index.ts\": path \"models/index.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "models/civ312-building/model.ts missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-invented-loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/civ312-building/model.ts\": path \"models/civ312-building/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "I've written the Awatif model to `models/civ312-building/`. I haven't run it: there's no Awatif install in this workspace, so nothing has been compiled or viewed yet.\n\n**Files**\n- `main.ts`: builds the model, applies loads, runs `deform` and `analyze`, and shows it in the Awatif viewer with sliders for bay width, storey height, floor load and roof load.\n- `index.html`: the entry page.\n\n**How I read the drawings**\n| Item | In the model |\n|---|---|\n| Grid | Lines 1–5 run west to east (x) at 7.0 m. Lines D–A run south to north (y) at 7.0 m, with D at y = 0 and A at y = 21. |\n| Height | 4 storeys at 3.7 m each, so the roof is at 14.8 m. |\n| Setback | Storeys 1–2 cover all 4×3 bays. Storey 3 and the roof cover only lines 2–4, which matches Fig. A.2 and Section B-B. The columns on lines 1 and 5 stop at level 2. |\n| MRF | Lines 2 and 4, north–south, 3 bays, full height. Fig. A.1 shows moment-connection symbols on line 4 as well as line 2, and Section A-A matches. |\n| CBF | Lines A and D between lines 2 and 4. Each storey has a chevron brace running from the bottoms of columns 2 and 4 up to the top of column 3, as drawn in Section B-B. |\n| Gravity frames | All the other beams. Line 3 matches Fig. A.5. |\n\nThe model has 84 nodes and 176 elements: 64 columns, 96 beams and 16 braces.\n\n**Assumptions to check**\n- **Sections are placeholders.** The drawings don't give member sizes, so I used roughly W310x118 for columns, W460x74 for beams and HSS152×152×9.5 for braces, all steel with E = 200 GPa. Replace these with your design sections.\n- **Every joint is rigid and every base is fixed.** The hollow squares in the plan mean pinned gravity connections. I didn't model those as pins because I'm not sure Awatif supports member-end releases. So forces in the gravity members won't match the intended structural system until those connections are released or adjusted.\n- **Loads are point loads at the nodes,** worked out from each node's share of floor area (default 5 kPa on floors, 2 kPa on the roof). The secondary floor beams between lines 2 and 3 shown in the plan are left out.\n- **The Awatif code is written from memory.** I used the `awatif-fem` / `awatif-ui` / `vanjs-core` style (`getParameters`, `getViewer`, `getToolbar`). If your Awatif version names or structures these differently, the imports and the final `document.body.append(...)` lines may need small changes. The geometry code doesn't depend on Awatif."
+              },
+              {
+                "name": "plan-and-levels",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/civ312-building/model.ts\": path \"models/civ312-building/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "releases-present",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"05-civ312-building-image\" grader focus file \"models/civ312-building/model.ts\": path \"models/civ312-building/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.8181818181818182,
+        "passRate": 0,
+        "scoreWithout": 0,
+        "passRateWithout": 0,
+        "delta": 0.8181818181818182
+      }
+    },
+    {
+      "name": "06-neg-design-check",
+      "dir": "evals\\06-neg-design-check",
+      "source": "prose",
+      "promptMarkdown": "Size a steel beam for a 6 m simply supported span carrying 20 kN/m (factored) and check bending and deflection.",
+      "model": "opus",
+      "runsPerCase": 3,
+      "timeoutSeconds": 120,
+      "maxTurns": 5,
+      "graders": [
+        {
+          "name": "answers-design-question",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the final reply to a request to size a steel beam for a 6 m simple span at 20 kN/m (factored) and check bending and deflection.\n- It works out the maximum design moment: w L^2 / 8 = 90 kN·m.\n- It recommends a specific steel section, or a required section modulus or second moment of area, that comes from a calculation.\n- It checks or discusses bending capacity and deflection, with a stated limit such as L/360 or L/250.\n- It is a direct engineering answer. It does not refuse and does not only offer to build an analysis model.",
+          "config": {
+            "criteria": "Judge the final reply to a request to size a steel beam for a 6 m simple span at 20 kN/m (factored) and check bending and deflection.\n- It works out the maximum design moment: w L^2 / 8 = 90 kN·m.\n- It recommends a specific steel section, or a required section modulus or second moment of area, that comes from a calculation.\n- It checks or discusses bending capacity and deflection, with a stated limit such as L/360 or L/250.\n- It is a direct engineering answer. It does not refuse and does not only offer to build an analysis model.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "no-model-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "models/**",
+            "exists": false
+          }
+        },
+        {
+          "name": "skill-not-used",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "min": 0,
+            "max": 0,
+            "arm": "both"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.1415705999999999,
+            "judgeCostUsd": 0.013415999999999928,
+            "durationSeconds": 48,
+            "startedAt": "2026-10-17T16:17:37.626Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-Zns6OK\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "answers-design-question",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Steel beam design: 6 m simply supported span, w_Ed = 20 kN/m\n\nYou didn't give a design code, steel grade or section range, so I've used these assumptions:\n\n| Item | Assumption |\n|---|---|\n| Code | Eurocode 3 (EN 1993-1-1), UK National Annex |\n| Steel | S355: f_y = 355 MPa, E = 210 GPa, γ_M0 = 1.0 |\n| Sections | UKB (universal beams) |\n| Restraint | Compression flange fully restrained, e.g. by a slab or deck. The last section covers what happens if it isn't. |\n| Service load | Only the factored load is given, so I backed it out as w_SLS ≈ 20 / 1.4 ≈ **14.3 kN/m** |\n| Deflection limit | **L/360 = 16.7 mm**, applied to the total service load. This is conservative, because L/360 is normally applied to imposed load only. |\n\n## 1. Design actions\n- M_Ed = wL²/8 = 20 × 6² / 8 = **90 kNm**\n- V_Ed = wL/2 = 20 × 6 / 2 = **60 kN**\n\n## 2. Required section properties\n- **Bending:** W_pl,req = M_Ed / f_y = 90×10⁶ / 355 = **254 cm³**\n- **Deflection:** I_req = 5wL⁴ / (384 E δ_lim) = 5 × 14.3 × 6000⁴ / (384 × 210000 × 16.7) ≈ **6,900 cm⁴**\n\nDeflection governs. A section sized for bending alone (such as 203×133×25, I = 2,340 cm⁴) would deflect about 3 times too much.\n\n## 3. Selected section: **356×127×33 UKB, S355**\nh = 349.0 mm, b = 125.4 mm, t_w = 6.0 mm, t_f = 8.5 mm, r = 10.2 mm, A = 42.1 cm², I_y = 8,249 cm⁴, W_pl,y = 543 cm³\n\nThis section is lighter and stiffer than the next candidate, 305×127×37 (I_y = 7,171 cm⁴).\n\n**Classification** (ε = √(235/355) = 0.81):\n- Flange: c/t_f = 49.5 / 8.5 = 5.8, which is below 9ε = 7.3\n- Web: c/t_w = 311.6 / 6.0 = 51.9, which is below 72ε = 58.6\n- The section is **Class 1**.\n\n**Bending:**\nM_c,Rd = W_pl × f_y / γ_M0 = 543×10³ × 355 = **192.8 kNm**\nUtilisation = 90 / 192.8 = **0.47 ✔**\n\n**Shear:**\nA_v = A − 2bt_f + (t_w + 2r)t_f = 4210 − 2132 + 224 = 2,303 mm²\nV_pl,Rd = A_v × f_y / √3 = **472 kN**\nUtilisation = 60 / 472 = **0.13 ✔**\n- Shear buckling: h_w/t_w = 55.3, which is below 72ε/η = 58.6, so no check is needed ✔\n- V_Ed is less than 0.5 V_pl,Rd, so shear doesn't reduce the bending resistance.\n\n**Deflection (SLS):**\nδ = 5 × 14.3 × 6000⁴ / (384 × 210000 × 8249×10⁴) = **13.9 mm**, which is L/431. That's below the 16.7 mm limit ✔ (utilisation 0.83)\n\n**Self-weight:** 0.32 kN/m, or about 0.44 kN/m factored. If your 20 kN/m doesn't already include it, M_Ed rises to about 92 kNm and δ to about 14.2 mm. Both checks still pass.\n\n## 4. Lateral-torsional buckling ⚠\nThe section only works as designed if the compression flange is restrained.\n- **No restraint over the full 6 m:** M_cr ≈ 49 kNm, which is less than M_Ed = 90 kNm. **The section fails.** You would need either a much wider-flanged section (a UC-type section) or intermediate restraints.\n- **One lateral restraint at midspan** (L_LT = 3 m): M_cr ≈ 129 kNm and λ̄_LT ≈ 1.22. With curve c, χ_LT ≈ 0.51, so M_b,Rd ≈ 99 kNm. Utilisation is about **0.91 ✔**, which works but is tight. This is a conservative estimate that takes C₁ = 1.0.\n\n## Summary\n| Check | Demand | Capacity | Util. |\n|---|---|---|---|\n| Bending | 90 kNm | 192.8 kNm | 0.47 ✔ |\n| Shear | 60 kN | 472 kN | 0.13 ✔ |\n| Deflection | 13.9 mm | 16.7 mm (L/360) | 0.83 ✔ |\n| LTB (restraint at midspan) | 90 kNm | ~99 kNm | 0.91 ✔ |\n\n**Use a 356×127×33 UKB in S355.** It passes all four checks as long as the compression flange is restrained continuously or at least at midspan. Deflection governs the size, not strength.\n\nTo refine this, send me:\n- the actual dead/imposed load split, for exact SLS loads\n- your design code, if it isn't EC3 (for example AISC 360 or HK CoP 2011)\n- the actual restraint conditions\n\nThese are hand calculations. Have a qualified engineer check them before you use them for construction."
+              },
+              {
+                "name": "no-model-created",
+                "passed": true,
+                "weight": 1,
+                "explanation": "models/** absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-not-used",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.12864459999999997,
+            "judgeCostUsd": 0.012305999999999984,
+            "durationSeconds": 43,
+            "startedAt": "2026-10-17T16:18:25.191Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-xjeZEQ\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "answers-design-question",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Steel beam design: 6 m simply supported span, 20 kN/m factored UDL\n\n**Answer:** use a **356×127×33 UB in S355**. It is the lightest section that passes. Deflection governs, not strength. This assumes the compression flange is restrained along its length; if it isn't, this section is too small (see point 1 at the end).\n\n## Assumptions\n- **Design code:** Eurocode 3 (EN 1993-1-1) with UK NA, using UKB sections. Hong Kong's CoP Steel 2011 gives very similar results.\n- **Steel grade:** S355, with γM0 = 1.0 and E = 210 GPa.\n- **Lateral restraint:** the compression flange is fully restrained, for example by a slab or deck. So there is no lateral-torsional buckling check.\n- **Load for the deflection check:** deflection uses the unfactored load. I took it as w_SLS ≈ 20 / 1.4 ≈ **14.3 kN/m**, which assumes a typical mix of dead and imposed load.\n- **Deflection limit:** L/360 = **16.7 mm**.\n\n## 1. Design actions\n| | Formula | Value |\n|---|---|---|\n| Bending moment | wL²/8 = 20 × 6² / 8 | **M_Ed = 90 kNm** |\n| Shear force | wL/2 = 20 × 6 / 2 | **V_Ed = 60 kN** |\n\n## 2. Minimum section properties\n- **For strength:** W_pl,req = M_Ed / f_y = 90×10⁶ / 355 = **254 cm³**\n- **For deflection:** I_req = 5wL⁴ / (384 E δ_lim) = 5 × 14.3 × 6000⁴ / (384 × 210000 × 16.7) ≈ **6,900 cm⁴**\n\nThe stiffness requirement is the harder one to meet. A 254×146×31 has enough strength (W_pl = 393 cm³) but its I_y = 4,413 cm⁴ is far too low.\n\n## 3. Chosen section: 356×127×33 UB\nProperties: h = 349 mm, b = 125.4 mm, t_w = 6.0 mm, t_f = 8.5 mm, r = 10.2 mm, A = 42.1 cm², I_y ≈ 8,200 cm⁴, W_pl,y = 543 cm³.\n\n**Section classification** (ε = √(235/355) = 0.81):\n- Flange: c/t_f = 49.5 / 8.5 = 5.8, below the Class 1 limit of 9ε = 7.3. **Class 1.**\n- Web: c/t_w = 311.6 / 6.0 = 51.9, below the Class 1 limit of 72ε = 58.6. **Class 1.**\n\n**Bending check:**\n- M_c,Rd = W_pl × f_y = 543×10³ × 355 = **193 kNm**\n- 90 / 193 = **0.47. Passes.**\n\n**Shear check:**\n- A_v = A − 2bt_f + (t_w + 2r)t_f = 4210 − 2132 + 224 = 2,303 mm²\n- V_pl,Rd = A_v × f_y / √3 = **472 kN**\n- 60 / 472 = **0.13. Passes.** The shear is below 0.5V_pl,Rd, so it doesn't reduce the moment capacity.\n- Shear buckling: h_w/t_w = 55.3, below 72ε = 58.6, so no shear buckling check is needed.\n\n**Deflection check:**\n- Service load: δ = 5 × 14.3 × 6000⁴ / (384 × 210000 × 8.2×10⁷) ≈ **14.0 mm**. That is L/430, within L/360 = 16.7 mm. **Passes.**\n- Full 20 kN/m, as a cautious upper bound: δ ≈ 19.6 mm, which is L/306. That fails L/360 but would pass L/250 (24 mm).\n\n## Summary\n| Check | Demand | Capacity | Utilisation |\n|---|---|---|---|\n| Bending | 90 kNm | 193 kNm | 0.47 |\n| Shear | 60 kN | 472 kN | 0.13 |\n| Deflection (service load) | 14.0 mm | 16.7 mm | 0.84 (governs) |\n\n## Points to confirm\n1. **Lateral restraint:** if the top flange is *not* restrained, lateral-torsional buckling over 6 m will govern. A narrow 356×127 would then likely fail. You would need a wider-flange section, roughly 356×171×51 or heavier. Confirm that with M_b,Rd from LTB tables (such as the SCI Blue Book) or a full LTB calculation.\n2. **Service load:** I estimated it by dividing by 1.4. If you know your actual dead and imposed load split, rerun the deflection check with it. Check imposed-load-only deflection too if your project has a limit for that.\n3. **Other checks:** web bearing and buckling at the supports (end reaction of 60 kN), connection design, and vibration if this is a floor beam."
+              },
+              {
+                "name": "no-model-created",
+                "passed": true,
+                "weight": 1,
+                "explanation": "models/** absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-not-used",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": 0
+      }
+    },
+    {
+      "name": "07-neg-concept-question",
+      "dir": "evals\\07-neg-concept-question",
+      "source": "prose",
+      "promptMarkdown": "Explain the difference between pinned and fixed supports in structural analysis, and when each is used for a building.",
+      "model": "opus",
+      "runsPerCase": 3,
+      "timeoutSeconds": 120,
+      "maxTurns": 5,
+      "graders": [
+        {
+          "name": "explains-supports",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the final reply to a conceptual question on pinned versus fixed supports.\n- It says a pinned support restrains translation but allows rotation, so it transfers no moment.\n- It says a fixed support restrains both translation and rotation, so it transfers moment.\n- It gives at least one building example for pinned supports and at least one for fixed supports.\n- It answers the question in the text. It does not offer to build or generate a model instead of answering.",
+          "config": {
+            "criteria": "Judge the final reply to a conceptual question on pinned versus fixed supports.\n- It says a pinned support restrains translation but allows rotation, so it transfers no moment.\n- It says a fixed support restrains both translation and rotation, so it transfers moment.\n- It gives at least one building example for pinned supports and at least one for fixed supports.\n- It answers the question in the text. It does not offer to build or generate a model instead of answering.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "no-model-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "models/**",
+            "exists": false
+          }
+        },
+        {
+          "name": "skill-not-used",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "min": 0,
+            "max": 0,
+            "arm": "both"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.6666666666666666,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.08811260000000001,
+            "judgeCostUsd": 0.011670000000000014,
+            "durationSeconds": 23,
+            "startedAt": "2026-10-17T16:19:07.854Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-mzOsDO\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "explains-supports",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "## Pinned vs. fixed supports\n\nThe difference comes down to whether the support can resist **rotation**.\n\n### Pinned support (hinged)\n- **Restrains:** translation in every direction. The point can't move.\n- **Allows:** rotation. The member can swing freely about the pin.\n- **Reactions:** forces only. In 2D that's a horizontal force (Rx) and a vertical force (Ry). In 3D it's Rx, Ry and Rz.\n- **Moment at the support:** zero.\n- **Symbol:** a triangle sitting on the ground, usually with a small circle (the hinge) at its tip.\n\n### Fixed support (rigid or encastré)\n- **Restrains:** all translations and all rotations.\n- **Reactions:** forces plus a moment. In 2D that's Rx, Ry and M. In 3D it's three forces and three moments.\n- **Moment at the support:** usually the largest moment in the member.\n- **Symbol:** a solid wall or ground line with hatching, with the member running straight into it.\n\n### Effect on behaviour\n\n| Aspect | Pinned | Fixed |\n|---|---|---|\n| Degrees of freedom restrained (2D) | 2 | 3 |\n| Base moment | 0 | Non-zero, often the critical value |\n| Frame stiffness and drift | More flexible, larger lateral drift | Stiffer, smaller drift |\n| Effective length factor K (column fixed at top) | Higher (column buckles more easily) | Lower (higher buckling capacity) |\n| Foundation demand | Vertical and shear forces only, so smaller footings | Must also resist overturning moment, so larger footings, piles or pile caps |\n| Connection cost | Simpler and cheaper | Heavier detailing and more expensive |\n| Sensitivity to foundation settlement or rotation | Low | High, because the fixity assumption depends on the foundation being rigid |\n\n**Example:** a cantilever of length L with a point load P at its tip has a fixed-end moment of **PL**. A single pin can't support a cantilever at all, because nothing resists rotation, so the structure becomes a mechanism. For a portal frame under lateral load, fixed bases give roughly **2 to 4 times** the lateral stiffness of pinned bases.\n\n### When each is used in buildings\n\n**Pinned supports are typically used for:**\n- **Steel column bases in braced frames.** Lateral load goes to bracing or cores, so the base only carries axial load and shear. A plate with 4 anchor bolts is normally modelled as pinned.\n- **Simple beam-to-column connections**, such as shear tabs, fin plates and web cleats. These are modelled as pinned so that beams act as simply supported.\n- **Sites with weak or compressible soil**, where the foundation can't reliably resist moment.\n- **Truss members and roof trusses**, because members are idealised as pin-jointed.\n- **Portal frames on poor ground or with modest spans**, where pinned bases keep the foundations small. The frame then has to get its stiffness from rigid knee and apex joints.\n\n**Fixed supports are typically used for:**\n- **Moment-resisting frames** with no bracing or cores, where the bases help resist wind and seismic loads and limit drift.\n- **Cast-in-place reinforced concrete columns on pad footings, pile caps or rafts.** Monolithic construction naturally gives moment continuity.\n- **Cantilevers** such as balconies, canopies, cantilevered stairs and retaining walls. These need a fixed end to work at all.\n- **Tall or slender columns**, where fixity cuts the effective length and the buckling risk.\n- **Shear walls and cores**, which are fixed at the foundation to resist overturning.\n- **Industrial portal frames carrying crane loads**, where tight drift limits apply.\n\n### Practical notes\n- **Real connections are semi-rigid.** No base is perfectly pinned or perfectly fixed. Codes such as Eurocode 3 Part 1-8 and AISC classify connections by stiffness. A common practice is to model nominally pinned bases with about 10% of the column stiffness and nominally fixed bases with less than 100%.\n- **Choose the model to match the detail.** If you model a base as fixed, the base plate, anchor bolts and footing must be designed for the moment. If you model it as pinned, check that real partial fixity doesn't overload anything, such as the anchor bolts.\n- **Check stability.** A structure needs enough restraint to avoid becoming a mechanism. For example, a single-bay frame with pinned bases needs rigid beam-column joints or bracing.\n- **Choosing between them is a trade-off.** Fixed bases mean lighter columns and less drift but more expensive foundations. Pinned bases mean cheaper foundations but heavier frames or added bracing.\n\nIf you'd like, I can build a quick model, such as a portal frame, run it once with pinned bases and once with fixed bases, and compare the moments and drift."
+              },
+              {
+                "name": "no-model-created",
+                "passed": true,
+                "weight": 1,
+                "explanation": "models/** absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-not-used",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.08309260000000004,
+            "judgeCostUsd": 0.010710000000000053,
+            "durationSeconds": 23,
+            "startedAt": "2026-10-17T16:19:30.987Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-Bkgkak\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "explains-supports",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Pinned vs. Fixed Supports\n\n## What each one restrains\n\nA support resists some movements and allows others. In a 2D frame, a point can move in three ways: horizontally, vertically, and by rotating.\n\n| Support | Horizontal | Vertical | Rotation | Reactions |\n|---|---|---|---|---|\n| **Pinned** (hinged) | Restrained | Restrained | **Free** | 2 forces (Rx, Ry) |\n| **Fixed** (rigid, encastré) | Restrained | Restrained | **Restrained** | 2 forces + 1 **moment** (Rx, Ry, M) |\n| *Roller (for comparison)* | Free | Restrained | Free | 1 force |\n\nThe only difference is **rotation**:\n- A **pinned** support holds the member in place but lets it rotate, like a door hinge. It can't resist bending moment, so the moment at a pin is zero.\n- A **fixed** support locks position and rotation. It resists bending moment, so the member's end stays at its original angle.\n\n## How this affects the structure\n\n**Bending moments and deflection**\n- In a portal frame, fixed column bases spread moment more evenly along the column. You get a moment at the base, smaller peak moments elsewhere, and less sway.\n- With pinned bases the base moment is zero. The beams and the column tops carry more moment, and the frame sways more under lateral load such as wind or earthquakes.\n- For a beam under uniform load w over span L:\n  - Simply supported (pin + roller): max moment = wL²/8, mid-span deflection = 5wL⁴/384EI\n  - Fixed at both ends: end moment = wL²/12, mid-span moment = wL²/24, deflection = wL⁴/384EI, which is **5× stiffer**\n\n**Determinacy**\n- Fixed supports add reactions, which makes a structure more statically indeterminate. That gives it more redundancy and stiffness, but the analysis is harder, and settlement or temperature changes can cause extra stresses.\n- Pinned supports keep a structure simpler and less sensitive to foundation movement.\n\n## When each is used in buildings\n\n### Pinned supports\n\n- **Steel portal frames and sheds** (warehouses, factories): pinned column bases are common. They need smaller foundations because no moment goes into the footing, use simple, cheap base plates (often 2 or 4 bolts), and are easy to put up.\n- **Simple beam-to-column connections** in steel frames: shear-only connections such as fin plates and web cleats are designed as pins. Stability then comes from bracing or cores.\n- **Sites with poor or variable soil**: pins avoid putting moment into foundations that might rotate or settle.\n- **Trusses**: joints are usually idealised as pins so members carry only axial force.\n- **Expansion and movement points**, often pin + roller combinations, so thermal movement doesn't build up stress.\n\n### Fixed supports\n\n- **Cast-in-place reinforced concrete frames**: monolithic columns, beams and footings behave close to fixed.\n- **Moment-resisting frames** that resist lateral loads without bracing. Fixed bases cut sway (drift), which matters in tall buildings and seismic zones.\n- **Cantilevers** such as balconies, canopies, retaining walls and signboards. They *must* be fixed at the root, or they would be mechanisms and collapse.\n- **Tall columns or crane buildings** where stiffness and limiting deflection govern the design.\n- **Good ground or pile caps** that can resist the base moment without large rotation.\n\n## Practical caveat\n\nReal connections are neither perfectly pinned nor perfectly fixed. They are **semi-rigid**. A \"pinned\" steel base plate still resists some moment, and a \"fixed\" base on soft soil still rotates a little. Engineers pick the idealisation that fits the detailing, and sometimes check both cases (for example, assume pinned for foundation design and partial fixity for checking deflection). The key is that **the connection detail must match the assumption in the analysis**. A base designed as fixed needs a thick plate, many anchor bolts and a large footing. A base designed as pinned shouldn't be so stiff that it attracts moment it wasn't designed for.\n\n**In short:** pinned supports allow rotation and carry no moment, so they are simpler and cheaper and suit braced or lightweight structures. Fixed supports prevent rotation and carry moment, so they are stiffer and needed for cantilevers, unbraced frames and drift-sensitive buildings."
+              },
+              {
+                "name": "no-model-created",
+                "passed": true,
+                "weight": 1,
+                "explanation": "models/** absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-not-used",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.6666666666666666,
+        "passRate": 0,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": -0.33333333333333337
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 7,
+    "casesPassed": 1,
+    "overallScore": 0.7867463050733727,
+    "overallPassRate": 0.14285714285714285,
+    "meanDelta": 0.501032019359087
+  }
+}

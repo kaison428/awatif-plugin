@@ -1,0 +1,320 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.302",
+  "startedAt": "2026-10-17T15:31:21.592Z",
+  "durationSeconds": 167,
+  "costUsd": 0.5666934,
+  "partial": false,
+  "suite": {
+    "root": "C:\\Users\\kaiso\\Documents\\GitHub\\awatif-plugin",
+    "ablation": "with-without",
+    "judgeModel": "sonnet",
+    "caseFilter": "03*",
+    "threshold": 1,
+    "concurrency": 1,
+    "plugins": [
+      {
+        "name": "awatif-plugin",
+        "version": "0.1.0",
+        "path": "C:\\Users\\kaiso\\Documents\\GitHub\\awatif-plugin"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "03-hibbler-frame-image",
+      "dir": "evals\\03-hibbler-frame-image",
+      "source": "mixed",
+      "promptMarkdown": "Read the image hibbler-frame-example.png in the resources folder and generate an Awatif model of the frame from it. Save it under models/hibbler-frame/.",
+      "model": "opus",
+      "runsPerCase": 3,
+      "timeoutSeconds": 600,
+      "maxTurns": 30,
+      "graders": [
+        {
+          "name": "gridlines-defined",
+          "type": "regex",
+          "weight": 0.5,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            },
+            "pattern": "grid-system",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "index-exports-model",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/index.ts"
+            },
+            "pattern": "\\./hibbler-frame",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "loads-converted-to-kn",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            },
+            "pattern": "^(?=[\\s\\S]*-\\s*(28\\.9\\d*|29(\\.[0-4]\\d*)?)\\b)(?=[\\s\\S]*-\\s*44\\.[2-7]\\d*)",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "model-file-created",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "models/hibbler-frame/model.ts",
+            "exists": true
+          }
+        },
+        {
+          "name": "placeholder-stated",
+          "type": "llm",
+          "weight": 0.5,
+          "graderMarkdown": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because the drawing gives no section.\n- It does not claim that members were sized, checked or verified.\n- It reports the unit conversion or the loads used (about 29.2 kN/m and 44.5 kN) or is otherwise consistent with them.",
+          "config": {
+            "criteria": "Judge the final reply.\n- It tells the user that the member design is a placeholder (generic-member) because the drawing gives no section.\n- It does not claim that members were sized, checked or verified.\n- It reports the unit conversion or the loads used (about 29.2 kN/m and 44.5 kN) or is otherwise consistent with them.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "points-metres",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            },
+            "pattern": "^(?=[\\s\\S]*\\[\\s*0(\\.0+)?\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*3\\.6[56]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*6\\.(09|10)\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*8\\.5[34]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*3\\.6[56]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*0(\\.0+)?\\s*\\])(?=[\\s\\S]*\\[\\s*8\\.5[34]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*0(\\.0+)?\\s*\\])",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "skill-trigger-display",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "min": 1
+          }
+        },
+        {
+          "name": "topology-supports-loads",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "Judge the model against the Hibbler frame drawing: a beam A-B-C in the XZ plane (y = 0) cantilevered from a wall at A, carried by two 16 ft columns at B (12 ft from A) and C (28 ft from A), with a 2 k/ft distributed load over A-B only and a 10 k point load 8 ft left of C. All lengths converted to metres (1 ft = 0.3048 m).\n- Beam level is z = 4.877 m. Column bases are at z = 0 at x = 3.658 (E) and x = 8.534 (D).\n- There is a point on the beam at x = 6.096 (the 10 k load position), so the beam is split into 3 lines: A to B, B to load point, load point to C.\n- There are 5 lines in total: the 3 beam segments and 2 vertical columns, E to B and D to C.\n- A fixed support is at A (the wall). Supports at E and D are pinned or fixed. Nothing is supported at B, C or the load point.\n- The distributed load is about -29.2 kN/m acting downward (global z, negative) on the A-to-B beam line only, not on the other beam segments.\n- The point load is about -44.5 kN in Fz (downward) at the point x = 6.096.\n- Loads are assigned to a load case. There are exactly these 2 loads and no other loads, load cases or combinations.\n- Every line has a design entry. Because no section is given, the entry is a generic-member placeholder.\n- gridLines (grid-system) place gridlines at x = 0, 3.658, 6.096, 8.534 and z = 0, 4.877.",
+          "config": {
+            "criteria": "Judge the model against the Hibbler frame drawing: a beam A-B-C in the XZ plane (y = 0) cantilevered from a wall at A, carried by two 16 ft columns at B (12 ft from A) and C (28 ft from A), with a 2 k/ft distributed load over A-B only and a 10 k point load 8 ft left of C. All lengths converted to metres (1 ft = 0.3048 m).\n- Beam level is z = 4.877 m. Column bases are at z = 0 at x = 3.658 (E) and x = 8.534 (D).\n- There is a point on the beam at x = 6.096 (the 10 k load position), so the beam is split into 3 lines: A to B, B to load point, load point to C.\n- There are 5 lines in total: the 3 beam segments and 2 vertical columns, E to B and D to C.\n- A fixed support is at A (the wall). Supports at E and D are pinned or fixed. Nothing is supported at B, C or the load point.\n- The distributed load is about -29.2 kN/m acting downward (global z, negative) on the A-to-B beam line only, not on the other beam segments.\n- The point load is about -44.5 kN in Fz (downward) at the point x = 6.096.\n- Loads are assigned to a load case. There are exactly these 2 loads and no other loads, load cases or combinations.\n- Every line has a design entry. Because no section is given, the entry is a generic-member placeholder.\n- gridLines (grid-system) place gridlines at x = 0, 3.658, 6.096, 8.534 and z = 0, 4.877.",
+            "focus": {
+              "source": "file",
+              "path": "models/hibbler-frame/model.ts"
+            }
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.6666666666666666,
+            "passed": false,
+            "turns": 22,
+            "costUsd": 0.329147,
+            "judgeCostUsd": 0.021526,
+            "durationSeconds": 90,
+            "startedAt": "2026-10-17T15:31:21.750Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-h97JiA\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "gridlines-defined",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "matched grid-system",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched \\./hibbler-frame",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "loads-converted-to-kn",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern not found in file models/hibbler-frame/model.ts",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": true,
+                "weight": 1,
+                "explanation": "models/hibbler-frame/model.ts exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": true,
+                "weight": 0.5,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "I created the Awatif model of the frame at `models/hibbler-frame/model.ts`, but I haven't run it. There's no shell in this session and I couldn't search the Awatif source, so the model has not been loaded or analysed. To check it, run `bash scripts/run.sh` from the project root (it uses `npx vite`, so the `awatif` package needs to be installed).\n\n**What's in the model**\n- **Units:** I converted the drawing's units to kN and m to match the Awatif templates (1 ft = 0.3048 m, 1 k = 4.448 kN).\n- **Geometry:** The beam runs along A–B–C at 16 ft (4.877 m) high. B is 12 ft from A and C is 28 ft from A. The columns run from E up to B and from D up to C. I added a node 20 ft from A where the point load sits.\n- **Grid lines:** vertical lines at A, B, the load point and C; horizontal lines at the ground and at beam level.\n- **Supports:**\n  - **A** (the bolted wall connection) is **pinned**. That's my reading of the single-bolt detail; the drawing doesn't say.\n  - **D and E** are **fixed**, which is the default rule for building foundations. If your problem statement treats D and E as pins, change their support `type` to `\"pinned\"`.\n- **Loads:** both come straight from the drawing, in one load case called \"Applied\". I added no load combinations because the source doesn't give any.\n  - 2 k/ft on AB, entered as 29.19 kN/m downward.\n  - 10 k at the load node, entered as 44.48 kN downward.\n- **Members:** every member uses a **`generic-member` placeholder** with default properties, because the drawing gives no sections. Put in the real section and material properties before relying on the results.\n\n**One thing to check when you run it:** I copied the distributed-load convention from the portal-frame template (a positive `w` value with `direction: \"global-z\"`), while the point load uses a negative `Fz`. I couldn't confirm Awatif's sign convention, so check that both loads point downward.\n\nI also added `models/index.ts`, which exports the model, and copied `platform.html`, `platform.ts`, `platform.css` and `vite-env.d.ts` into the project root."
+              },
+              {
+                "name": "points-metres",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched ^(?=[\\s\\S]*\\[\\s*0(\\.0+)?\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*3\\.6[56]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*6\\.(09|10)\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*8\\.5[34]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*4\\.8[78]\\d*\\s*\\])(?=[\\s\\S]*\\[\\s*3\\.6[56]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*0(\\.0+)?\\s*\\])(?=[\\s\\S]*\\[\\s*8\\.5[34]\\d*\\s*,\\s*0(\\.0+)?\\s*,\\s*0(\\.0+)?\\s*\\])",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "skill-trigger-display",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "topology-supports-loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "import type { AppConfig } from \"awatif/templates\";\n\n// Hibbler frame example in the XZ work plane: beam A-B-C at 16 ft with a pinned\n// wall connection at A, columns B-E and C-D fixed at the ground, a 2 k/ft\n// uniform load on AB and a 10 k point load 8 ft from C. Imperial values from\n// the source are converted to kN and m (1 ft = 0.3048 m, 1 k = 4.448 kN).\nexport const hibblerFrame: AppConfig = {\n  points: [\n    [0, 0, 4.8768], // 1 A, wall connection\n    [3.6576, 0, 4.8768], // 2 B, 12 ft from A\n    [6.096, 0, 4.8768], // 3 point load, 8 ft from B\n    [8.5344, 0, 4.8768], // 4 C, 8 ft from load\n    [3.6576, 0, 0], // 5 E, column base under B\n    [8.5344, 0, 0], // 6 D, column base under C\n  ],\n  lines: [\n    [1, 2], // beam AB\n    [2, 3], // beam B to load point\n    [3, 4], // beam load point to C\n    [5, 2], // column EB\n    [6, 4], // column DC\n  ],\n\n  gridLines: [\n    {\n      name: \"Frame Grid\",\n      templateId: \"grid-system\",\n      geometry: [],\n      params: {\n        x: [\n          { id: \"A\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"B\", ordinate: 3.6576, visible: true, bubble: \"end\" },\n          { id: \"P\", ordinate: 6.096, visible: true, bubble: \"end\" },\n          { id: \"C\", ordinate: 8.5344, visible: true, bubble: \"end\" },\n        ],\n        y: [{ id: \"1\", ordinate: 0, visible: true, bubble: \"start\" }],\n        z: [\n          { id: \"Z1\", ordinate: 0, visible: true, bubble: \"end\" },\n          { id: \"Z2\", ordinate: 4.8768, visible: true, bubble: \"end\" },\n        ],\n      },\n    },\n  ],\n\n  loadCases: [\"Applied\"],\n\n  supports: [\n    {\n      name: \"Wall Pin A\",\n      templateId: \"point-support\",\n      geometry: [1],\n      params: { type: \"pinned\" },\n    },\n    {\n      name: \"Fixed Bases D, E\",\n      templateId: \"point-support\",\n      geometry: [5, 6],\n      params: { type: \"fixed\" },\n    },\n  ],\n\n  loads: [\n    {\n      name: \"2 k/ft on AB\",\n      templateId: \"distributed-load\",\n      geometry: [1],\n      params: { w: 29.19, direction: \"global-z\" },\n      loadCase: \"Applied\",\n    },\n    {\n      name: \"10 k on BC\",\n      templateId: \"point-load\",\n      geometry: [3],\n      params: { Fx: 0, Fy: 0, Fz: -44.48, Mx: 0, My: 0, Mz: 0 },\n      loadCase: \"Applied\",\n    },\n  ],\n\n  mesh: [\n    {\n      name: \"Frame Mesh\",\n      templateId: \"line-mesh\",\n      geometry: [1, 2, 3, 4, 5],\n      params: { divisions: 8 },\n    },\n  ],\n\n  design: [\n    {\n      // Placeholder: the source does not give member sections\n      name: \"Generic Steel Members\",\n      templateId: \"generic-member\",\n      geometry: [1, 2, 3, 4, 5],\n    },\n  ],\n};\n"
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 8,
+            "costUsd": 0.2375464,
+            "judgeCostUsd": 0.01454,
+            "durationSeconds": 78,
+            "startedAt": "2026-10-17T15:32:51.260Z",
+            "error": null,
+            "tracePath": "C:\\Users\\kaiso\\AppData\\Local\\Temp\\claude-eval-3WbgoA\\out\\trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "gridlines-defined",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "index-exports-model",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/index.ts\": path \"models/index.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "loads-converted-to-kn",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "model-file-created",
+                "passed": false,
+                "weight": 1,
+                "explanation": "models/hibbler-frame/model.ts missing (expected present)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "placeholder-stated",
+                "passed": false,
+                "weight": 0.5,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "I built the Awatif model of the frame in `models/hibbler-frame/`. I haven't installed or run it: the workspace has no Awatif code, and I wrote the API calls from memory of Awatif's examples. Package names (`awatif-fem`, `awatif-ui`) or argument shapes may need small fixes to match the version you use.\n\n**Files**\n- `main.ts`: the model\n- `index.html`: the page that loads it\n- `package.json`: Vite project using `awatif-fem`, `awatif-ui` and `vanjs-core`\n\n**What I read from the image** (units are kips and feet; the frame is drawn in the XZ plane with Z up)\n- **Geometry:** A sits at the wall. Beam A–B is 12 ft and beam B–C is 16 ft. The columns B–E and C–D are both 16 ft tall.\n- **Loads:**\n  - The 2 k/ft load on A–B is applied as point loads at the nodes, since the model only takes loads at nodes. I split A–B into six 2 ft segments: 4 k at each middle node and 2 k at each end, 24 k in total.\n  - The 10 k load is a point load at the middle of B–C, 8 ft from B.\n- **Supports:**\n  - A is a pin: it can rotate in the plane of the frame but not out of it.\n  - E and D are fixed bases.\n  - B and C are rigid joints.\n\n**Choices you should check**\n- **Supports:** the figure doesn't label the support types. I read the bolted wall connection at A as a pin and the base plates at E and D as fixed. If your problem statement says otherwise, change the `supports` map in `main.ts`.\n- **Section and material:** the figure gives none. I used one steel section for every member: E = 29,000 ksi, A = 20 in², I = 1000 in² about both axes, J = 5 in². With the same EI everywhere, the reactions and member forces depend only on the geometry, but the deflections depend on these numbers. Using the same I about both axes means the result doesn't depend on how Awatif orients each member's local axes.\n\nTo run it: `cd models/hibbler-frame && npm install && npm run dev`."
+              },
+              {
+                "name": "points-metres",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "topology-supports-loads",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: case \"03-hibbler-frame-image\" grader focus file \"models/hibbler-frame/model.ts\": path \"models/hibbler-frame/model.ts\" does not exist",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.6666666666666666,
+        "passRate": 0,
+        "scoreWithout": 0,
+        "passRateWithout": 0,
+        "delta": 0.6666666666666666
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 0,
+    "overallScore": 0.6666666666666666,
+    "overallPassRate": 0,
+    "meanDelta": 0.6666666666666666
+  }
+}
