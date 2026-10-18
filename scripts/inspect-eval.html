@@ -11,6 +11,7 @@
       body { margin:0; height:100vh; display:flex; flex-direction:column; background:var(--bg); color:var(--fg); font:14px system-ui, sans-serif; }
       header { display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid var(--line); background:var(--panel); }
       header h1 { font-size:15px; margin:0; }
+      header a { color:var(--accent); }
       select, button { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:4px 8px; }
       .tabs { display:flex; gap:4px; padding:6px 12px 0; border-bottom:1px solid var(--line); overflow-x:auto; }
       .tabs button { border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; background:none; color:var(--muted); cursor:pointer; white-space:nowrap; }
@@ -27,7 +28,6 @@
       aside ul { list-style:none; margin:0; padding:0; }
       aside li { padding:4px 0; border-bottom:1px solid var(--line); }
       aside li small { display:block; color:var(--muted); }
-      aside img { max-width:100%; border:1px solid var(--line); margin-top:6px; }
       .view { flex:1; min-width:0; display:flex; flex-direction:column; }
       #content { flex:1; min-height:0; display:flex; flex-direction:column; }
       iframe { flex:1; border:0; width:100%; }
@@ -38,10 +38,11 @@
   <body>
     <header>
       <h1>Eval Inspector</h1>
-      <label>Iteration <select id="iteration"></select></label>
-      <button id="refresh" title="Rescan the workspace">Refresh</button>
+      <label>Result <select id="result"></select></label>
+      <a id="report" target="_blank">HTML report</a>
+      <button id="refresh" title="Rescan the results folder">Refresh</button>
     </header>
-    <div class="tabs" id="evals"></div>
+    <div class="tabs" id="cases"></div>
     <div class="tabs runs" id="runs"></div>
     <main>
       <aside id="side"></aside>
@@ -69,7 +70,7 @@
       };
 
       let data;
-      const state = { iteration: store.get("it"), eval: store.get("ev"), run: store.get("run"), view: store.get("view") || "model", file: null };
+      const state = { result: store.get("res"), case: store.get("case"), run: store.get("run"), view: store.get("view") || "model", file: null };
 
       const tabs = (host, items, active, onPick) =>
         host.replaceChildren(
@@ -77,11 +78,7 @@
             el("button", { className: id === active ? "active" : "", onclick: () => onPick(id) }, label, extra ?? ""),
           ),
         );
-      const score = (g) => {
-        if (!g?.summary) return null;
-        const { passed, total } = g.summary;
-        return el("span", { className: "score " + (passed === total ? "ok" : "bad") }, `${passed}/${total}`);
-      };
+      const score = (r) => el("span", { className: "score " + (r.passed ? "ok" : "bad") }, `${Math.round(r.score * 100)}%`);
 
       async function load() {
         data = await (await fetch("/api/runs")).json();
@@ -89,75 +86,72 @@
       }
 
       function render() {
-        const its = data.iterations;
-        if (!its.length) return empty("No iterations found in skills/awatif-model-workspace");
-        const it = its.find((i) => i.id === state.iteration) ?? its[0];
-        state.iteration = it.id;
-        $("iteration").replaceChildren(...its.map((i) => el("option", { value: i.id, selected: i.id === it.id }, i.id)));
+        const results = data.results;
+        if (!results.length) return empty("No results found in evals/results");
+        const res = results.find((r) => r.id === state.result) ?? results[0];
+        state.result = res.id;
+        $("result").replaceChildren(...results.map((r) => el("option", { value: r.id, selected: r.id === res.id }, r.id)));
+        $("report").href = "/" + res.report;
 
-        const ev = it.evals.find((e) => e.id === state.eval) ?? it.evals[0];
-        if (!ev) return empty("No evals in this iteration");
-        state.eval = ev.id;
-        tabs($("evals"), it.evals.map((e) => ({ id: e.id, label: e.name })), ev.id, (id) => {
-          state.eval = id; state.run = null; store.set("ev", id); render();
+        const c = res.cases.find((x) => x.id === state.case) ?? res.cases[0];
+        if (!c) return empty("No cases in this result");
+        state.case = c.id;
+        tabs($("cases"), res.cases.map((x) => ({ id: x.id, label: x.id })), c.id, (id) => {
+          state.case = id; state.run = null; store.set("case", id); render();
         });
 
-        const run = ev.runs.find((r) => r.id === state.run) ?? ev.runs[0];
+        const run = c.runs.find((r) => r.id === state.run) ?? c.runs[0];
         state.run = run?.id;
-        tabs($("runs"), ev.runs.map((r) => ({ id: r.id, label: r.id, extra: score(r.grading) })), run?.id, (id) => {
+        tabs($("runs"), c.runs.map((r) => ({ id: r.id, label: r.id, extra: score(r) })), run?.id, (id) => {
           state.run = id; store.set("run", id); render();
         });
 
-        renderSide(ev, run);
-        renderView(it, ev, run);
-        store.set("it", it.id);
+        renderSide(c, run);
+        renderView(run);
+        store.set("res", res.id);
       }
 
-      function renderSide(ev, run) {
+      function renderSide(c, run) {
         const side = $("side");
-        side.replaceChildren(el("h3", {}, "Prompt"), el("p", {}, ev.prompt || "(none)"));
-        ev.files.filter((f) => /\.(png|jpe?g)$/i.test(f)).forEach((f) =>
-          side.append(el("a", { href: "/" + f, target: "_blank" }, el("img", { src: "/" + f }))),
-        );
-        side.append(el("h3", {}, "Expectations"));
+        side.replaceChildren(el("h3", {}, "Prompt"), el("p", {}, c.prompt || "(none)"));
+        if (run?.error) side.append(el("h3", {}, "Error"), el("p", { className: "bad" }, run.error));
+        side.append(el("h3", {}, "Graders"));
         const list = el("ul");
-        (run?.grading?.expectations ?? []).forEach((x) =>
+        (run?.graders ?? []).forEach((g) =>
           list.append(
-            el("li", {}, el("span", { className: x.passed ? "ok" : "bad" }, x.passed ? "✓ " : "✗ "), x.text,
-              x.evidence ? el("small", {}, x.evidence) : ""),
+            el("li", {}, el("span", { className: g.passed ? "ok" : "bad" }, g.passed ? "✓ " : "✗ "),
+              g.name + (g.weight !== 1 ? ` (×${g.weight})` : "") + (g.scored ? "" : " — display only"),
+              g.explanation ? el("small", {}, g.explanation) : ""),
           ),
         );
-        side.append(list.children.length ? list : el("p", {}, "No grading.json"));
+        side.append(list.children.length ? list : el("p", {}, "No graders"));
       }
 
-      function renderView(it, ev, run) {
-        const views = [{ id: "model", label: "Model" }, { id: "source", label: "Source" }, { id: "expected", label: "Expected" }];
-        if (it.benchmark) views.push({ id: "benchmark", label: "Benchmark" });
+      function renderView(run) {
+        const views = [{ id: "model", label: "Model" }, { id: "source", label: "Files" }, { id: "trace", label: "Trace" }];
         if (!views.some((v) => v.id === state.view)) state.view = "model";
-        tabs($("views"), views, state.view, (id) => { state.view = id; store.set("view", id); renderView(it, ev, run); });
+        tabs($("views"), views, state.view, (id) => { state.view = id; store.set("view", id); renderView(run); });
         const c = $("content");
+        if (!run?.collected) return empty("Run not collected. Run `npm run eval:collect` after an eval with --keep-temp.");
 
         if (state.view === "model") {
-          if (!run?.html) return empty("This run has no platform.html");
+          if (!run.html) return empty("This run has no platform.html");
           c.replaceChildren(el("iframe", { src: run.html }));
         } else if (state.view === "source") {
-          const files = (run?.files ?? []).filter((f) => /\.(ts|js)$/.test(f));
-          if (!files.length) return empty("No source files");
+          const files = run.files;
+          if (!files.length) return empty("No files were created in this run");
           const cur = files.includes(state.file) ? state.file : files.find((f) => f.endsWith("model.ts")) ?? files[0];
           state.file = cur;
-          const sel = el("select", { style: "margin:8px 12px", onchange: () => { state.file = sel.value; renderView(it, ev, run); } },
-            ...files.map((f) => el("option", { value: f, selected: f === cur }, f.split("/outputs/")[1])));
+          const sel = el("select", { style: "margin:8px 12px", onchange: () => { state.file = sel.value; renderView(run); } },
+            ...files.map((f) => el("option", { value: f, selected: f === cur }, f.split("/cwd/")[1])));
           c.replaceChildren(sel, showText(cur));
-        } else if (state.view === "expected") {
-          const f = ev.files.find((x) => x.endsWith(".ts"));
-          if (!f) return empty("No expected file for this eval");
-          c.replaceChildren(showText(f));
         } else {
-          c.replaceChildren(showText(it.benchmark));
+          if (!run.trace) return empty("No trace for this run");
+          c.replaceChildren(showText(run.trace));
         }
       }
 
-      $("iteration").onchange = (e) => { state.iteration = e.target.value; state.eval = null; state.run = null; render(); };
+      $("result").onchange = (e) => { state.result = e.target.value; state.case = null; state.run = null; render(); };
       $("refresh").onclick = load;
       load();
     </script>
