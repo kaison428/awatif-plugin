@@ -7,4 +7,4 @@ Judge the loads against the Hibbler frame drawing: a 2 k/ft distributed load on 
 - The distributed load is assigned to the beam line from A to B only, and not to the other beam segments or the columns.
 - The point load is 10 k, about 44.48 kN in magnitude, and acts downward, so Fz is negative. It is applied at the load point at x = 6.096 m.
 - Both loads belong to a load case that exists in loadCases.
-- There are exactly these two loads. There are no other loads, load cases or combinations.
+- There are exactly these two loads. There are no other loads.

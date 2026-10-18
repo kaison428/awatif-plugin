@@ -1,7 +1,7 @@
 {
-  "name": "awatif-plugin",
+  "name": "awatif-structural",
   "version": "0.1.0",
   "description": "Claude Code plugin for working with Awatif structural analysis",
-  "author": { "name": "Kaison" },
+  "author": { "name": "Kaison Cheung" },
   "keywords": ["awatif", "structural-analysis", "fem"]
 }
