@@ -10,8 +10,8 @@ description: Use only for creating structural models and running structural anal
 1. Create a `/models` folder in the project root if it does not exist.
 2. Create a subfolder named after the model (e.g. `/models/2-storey-portal-frame`).
 3. In that subfolder, create `model.ts` defining the `AppConfig`. See `references/data-model.md` for awatif data-model definitions.
-4. Place `platform.html`, `platform.ts`, `platform.css` and `vite-env.d.ts` in the project root.
-5. Run `bash scripts/run.sh` to start `platform.html`.
+4. Run `createEngine` to create an `Engine` object. See `references/data-model.md`
+5. Use the `awatif-ui` skill to create a ui viewer for the model.
 
 ## Rules
 

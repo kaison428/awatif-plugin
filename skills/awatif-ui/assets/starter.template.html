@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+{{HEAD_ASSETS}}
+<style>
+  html, body, #root { height: 100%; margin: 0; }
+  body { background: var(--surface-canvas); color: var(--ink); font-family: var(--font-sans); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+{{BODY_SCRIPTS}}
+<script>
+/* Starter viewer. The six-region layout, tree, inspector and styling come from the design system;
+   replace MODEL with the app's model and mount the model view in #viewport (window.onViewerReady). */
+(function () {
+  var SV = window.StructViewer, UI = window.AwatifUI, h = React.createElement, useState = React.useState, useEffect = React.useEffect, F = React.Fragment;
+  var TITLE = {{TITLE_JSON}};
+  var LOGO = "{{LOGO_SRC}}";
+
+  /* 1. The model: positions in m, forces in kN. Replace with the app's real Awatif model. */
+  var MODEL = {
+    points: [[0, 0, 0], [3, 0, 0], [6, 0, 0]],
+    lines: [[1, 2], [2, 3]],
+    loadCases: ['Dead', 'Live'],
+    loadCombinations: [{ name: 'ULS', factors: { Dead: 1.35, Live: 1.5 } }],
+    supports: [{ name: 'Bases', templateId: 'point-support', geometry: [1, 3], params: { type: 'pinned' } }],
+    loads: [{ name: 'Roof', templateId: 'distributed-load', geometry: [1, 2], params: { w: 20, direction: 'global-z' }, loadCase: 'Dead' }],
+    mesh: [{ name: 'Mesh', templateId: 'line-mesh', geometry: [1, 2], params: { divisions: 8 } }],
+    design: [{ name: 'Beam', templateId: 'concrete-member', geometry: [1, 2], params: { width: 350, depth: 350, concreteGrade: 'C30' } }]
+  };
+
+  function App() {
+    var a = useState(null), selId = a[0], setSel = a[1];
+    var tree = UI.buildTree(MODEL);
+    var ins = selId ? UI.inspector(MODEL, selId) : null;
+    var loadSel = UI.loadSelectionOptions(MODEL);
+    var dim = { color: 'var(--ink-muted)' };
+
+    useEffect(function () { if (window.onViewerReady) window.onViewerReady(document.getElementById('viewport')); }, []);
+
+    var toolbar = h(F, null,
+      h('img', { src: LOGO, alt: '', style: { height: 24, width: 'auto' } }),
+      h('span', { className: 'h3' }, TITLE),
+      h('span', { className: 'sv-toolbar__sep' }),
+      loadSel.length ? h(SV.Select, { 'aria-label': 'Load selection', options: loadSel, defaultValue: loadSel[0].options[0] }) : null,
+      h('span', { className: 'sv-toolbar__spacer' }),
+      h(SV.Button, { size: 'sm', variant: 'ghost', onClick: function () { var r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'; } }, 'Theme'));
+
+    var left = h(SV.Panel, { title: 'Model', flush: true },
+      h(SV.TreeView, { nodes: tree, selectedId: selId, defaultExpanded: tree.map(function (g) { return g.id; }), onSelect: function (id) { setSel(id); } }));
+
+    var right = h(SV.Panel, { title: 'Inspector', flush: true },
+      ins
+        ? h(F, null,
+            h('div', { style: { padding: '12px', borderBottom: '1px solid var(--border)' } }, h('div', { className: 'h3' }, ins.title), h('div', { className: 'caption', style: dim }, ins.sub)),
+            h(SV.PropertyGrid, { key: selId, groups: ins.groups }))
+        : h('p', { className: 'ui', style: Object.assign({ margin: 0, padding: '12px' }, dim) }, 'Select an item in the model tree.'));
+
+    var status = h(F, null, h('span', null, selId ? 'Selected: ' + selId : 'Nothing selected'), h('span', { style: { flex: 1 } }), h('span', null, 'Units: m, kN'));
+
+    return h(SV.AppShell, { toolbar: toolbar, left: left, right: right, statusbar: status },
+      h('div', { id: 'viewport', className: 'ui', style: Object.assign({ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }, dim) }, 'Mount the model view here'));
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+})();
+</script>
+</body>
+</html>
