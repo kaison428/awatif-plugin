@@ -1,7 +1,7 @@
 ---
 max_turns: 20
 timeout_seconds: 300
-allowed_tools: [Skill, Read, Write, Glob]
+allowed_tools: [Skill, Read, Write, Glob, Bash]
 model: opus
 runs: 3
 ---
