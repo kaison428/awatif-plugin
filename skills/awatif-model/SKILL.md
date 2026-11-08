@@ -33,6 +33,8 @@ description: Use only for creating structural models and running structural anal
 
 Everything is interactive and analysed in real time; the user never needs `results.json`.
 
+The viewer is three.js (Awatif's `getViewer`: a WebGL scene with OrbitControls, Z up). three.js is the mandatory viewer library: left-drag orbits, right-drag pans, the wheel zooms.
+
 - **Select by dragging.** Open a component in the bottom bar (Supports, Loads, Design, Special) and activate an entry in its list. The viewer enters selection mode: drag a box **left to right** to add the points, lines and polygons it touches to the entry, **right to left** to remove them. Right-click in the viewer to leave selection mode.
 - **Edit the geometry.** With no entry active, drag a point to move it, click empty space to add a point, click a point, then click where the line should end (on a point or in empty space), right-click a point to delete it. Ctrl+Z undoes.
 - **Change parameters** (load magnitude, support type, section, mesh divisions) in the panel that opens beside the entry.
@@ -51,7 +53,8 @@ Everything is interactive and analysed in real time; the user never needs `resul
 - Always define `gridLines` (a `grid-system` entry) before modelling, at the column lines, load positions, major transitions, lines of symmetry and floor/eaves levels, so the geometry follows the intended layout.
 - For 3D models, use the XY workplane.
 - For building foundations, use fixed supports unless the user specifies otherwise.
-- Always run the analysis with `scripts/analyze.mjs` or the live app (`scripts/serve.mjs`); never compute or estimate results by hand. The user works in the live app, so always launch it; never hand over only `results.json` or a static viewer. A model without loads still runs and gives zero results; say so instead of adding loads.
+- Always run the analysis with `scripts/analyze.mjs` or the live app (`scripts/serve.mjs`); never compute or estimate results by hand. The user works in the live app, so always launch it; never hand over only `results.json` or a static viewer.
+- Every viewer is three.js and interactive (orbit, pan, zoom, select). Never draw a model as a static image, SVG or 2D canvas. If the user wants a custom-branded viewer, build it with the `awatif-ui` skill, whose starter mounts the three.js viewer (`assets/awatif-viewer.js`). A model without loads still runs and gives zero results; say so instead of adding loads.
 - Loads act in the sign of their axis: gravity on `global-z` is a negative `w` or `Fz`.
 - The solver is 3D: every rigid-body motion must be restrained, including rotation about a member's own axis. `Linear solver failed` usually means a mechanism (e.g. a beam on `pinned` + `x-roller` with a generic member); restrain it at a support rather than changing loads.
 

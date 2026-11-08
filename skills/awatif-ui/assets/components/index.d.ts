@@ -123,6 +123,6 @@ export interface AppShellProps {
   leftWidth?: string;
   rightWidth?: string;
   bottomHeight?: string;
-  /** The model view: SVG, canvas or WebGL. Fills the viewport. */
+  /** The model view: the three.js viewer (awatif-viewer.js). Fills the viewport. */
   children?: ReactNode;
 }

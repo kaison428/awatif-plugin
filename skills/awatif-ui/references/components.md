@@ -6,7 +6,7 @@ React components in `assets/components/bundle.js` (global `window.StructViewer`,
 
 AppShell is the one layout every viewer app is built on: toolbar on top, model tree left, viewport in the middle, inspector right, data drawer under the viewport, status bar at the bottom.
 
-You provide each region as a node: `toolbar`, `left`, `right`, `bottom`, `statusbar`. The model view (SVG, canvas or WebGL) goes in as `children` and fills the viewport; pass `overlays` (`topLeft`, `topRight`, `bottomLeft`, `bottomRight`) for things that float over it. The shell needs a parent with a definite height.
+You provide each region as a node: `toolbar`, `left`, `right`, `bottom`, `statusbar`. The model view goes in as `children` and fills the viewport; it is always the three.js viewer (`assets/awatif-viewer.js`, see SKILL.md), never SVG or a 2D canvas; pass `overlays` (`topLeft`, `topRight`, `bottomLeft`, `bottomRight`) for things that float over it. The shell needs a parent with a definite height.
 
 What goes where, from the model:
 - `toolbar`: the logo, the model name in `h3`, analysis (Linear and Nonlinear as pressed ghost buttons), the load selection as a grouped `Select` (Load cases, Load combinations), and canvas buttons such as Report.

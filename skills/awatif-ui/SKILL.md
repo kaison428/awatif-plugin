@@ -5,7 +5,7 @@ description: Design system for structural analysis and modeling viewer apps buil
 
 # Structural viewer design system
 
-> **Interactive Awatif models:** to let a user work on a model (select nodes and members by dragging, edit loads and supports, see results update live), launch the live Awatif app with the `awatif-model` skill's `scripts/serve.mjs`. It runs Awatif as the engine in the browser. This design system is for custom-branded viewers and dashboards; its starter does not run analysis, so do not use it as the default viewer for a model.
+> **Interactive Awatif models:** to let a user work on a model (select nodes and members by dragging, edit loads and supports, see results update live), launch the live Awatif app with the `awatif-model` skill's `scripts/serve.mjs`. It runs Awatif as the engine in the browser. This design system is for custom-branded viewers and dashboards; its starter does not run analysis, so do not use it as the default viewer for a model. Both use three.js for the viewport.
 
 One rule runs the system: **the interface mirrors the data model.** Every app shows the same Awatif `Model` in the same six regions, styled only from tokens, so apps built months apart look like one product. Inside that frame an app is free to arrange its own content.
 
@@ -14,17 +14,17 @@ One rule runs the system: **the interface mirrors the data model.** Every app sh
 Scaffold a working starter first, then replace the example model and mount the app's own viewport.
 
 ```bash
-# one self-contained HTML file (CSS, JS, Nunito and logo inlined; React 18.3.1 loads from jsDelivr)
+# one self-contained HTML file (CSS, JS, Nunito and logo inlined; React 18.3.1 and three 0.183.2 load from jsDelivr)
 python scripts/scaffold.py out/viewer.html --title "Portal frame" --single-file
 
-# or a folder with linked assets (tokens.css, components/, fonts/, logo.svg, awatif-ui.js)
+# or a folder with linked assets (tokens.css, components/, fonts/, logo.svg, awatif-ui.js, awatif-viewer.js)
 python scripts/scaffold.py out/viewer --title "Portal frame"
 ```
 
-The starter already has the toolbar, model tree, inspector and status bar wired to a small example model. To finish an app:
+The starter already has the toolbar, model tree, inspector, status bar and an interactive three.js viewport wired to a small example model. To finish an app:
 
 1. Replace `MODEL` in the inline script with the app's real model (positions in m, forces in kN).
-2. Mount the model drawing (SVG, canvas or WebGL) in `#viewport`. The starter calls `window.onViewerReady(element)` once the element exists, so define that function before the page loads, or edit the placeholder directly.
+2. Keep the three.js viewport. `assets/awatif-viewer.js` (global `AwatifViewer`, ES module behind an import map for `three` and `three/addons/`) draws points, lines, polygons, mesh nodes, grid lines, supports, releases and loads from the `elem-*` tokens, follows the theme, and handles orbit (left-drag), pan (right-drag), zoom (wheel), click-to-select and double-click to fit. Its API: `createViewer(el, model, { onSelect, onHover })` returns `{ select(id), setLoadSelection(name), setModel(model), fit(), render(), dispose(), three }`. Ids are the tree ids (`point-2`, `line-1`, `supports-0`). Draw extra things (results, deformed shape) into `viewer.three.root` or `viewer.three.scene` and call `viewer.render()`. `window.onViewerReady(element, viewer)` runs once it is mounted.
 3. Add what the app needs from the optional regions: a data drawer (`bottom`) with `Tabs` + `DataTable`, floating display options (`overlays.topRight`), a `ContourLegend` (`overlays.bottomLeft`).
 
 Run scripts from the skill folder (paths above are relative to it). The scaffold needs only Python 3 and no packages.
@@ -34,6 +34,7 @@ Run scripts from the skill folder (paths above are relative to it). The scaffold
 These are what make the apps look related. Break one only if the user asks.
 
 - **Six regions, fixed arrangement:** toolbar (top), model tree (left), viewport (center, takes all remaining space), inspector (right), data drawer (under the viewport), status bar (bottom). Omit a region the app doesn't need; never move one to another side and never add a seventh. `StructViewer.AppShell` implements this.
+- **The viewport is three.js and interactive.** three.js (pinned `0.183.2`, matching the plugin's dependency) is the mandatory viewport library: mount `AwatifViewer.createViewer`, or build on its `three` handles. Orbit, pan, zoom and click-to-select always work, with Z up. Never replace it with a static image, SVG or 2D canvas, and never pull in another 3D library.
 - **Tokens only.** Every color, size, radius, shadow and type style comes from `assets/tokens.css` (`var(--ink)`, `var(--space-3)`, class `.ui`). No hex values or arbitrary px in app code. If an app needs something that isn't a token, add it to `assets/tokens.json` and rebuild (see below), so the next app gets it too.
 - **Nunito** for all interface text (bundled variable font). Body size is `ui` (13px). Numbers go in the `data` style, which turns on tabular figures so decimals align.
 - **Light and dark are both first-class.** Switch with `data-theme="light|dark"` on `<html>`. All text pairs are at least 4.5:1, borders and drawn marks at least 3:1.
@@ -93,4 +94,4 @@ Grammar notes: colors are lists with per-theme values (`{"light": "...", "dark":
 
 ## Checking your work
 
-Before handing an app back, confirm: all six regions behave (or are deliberately omitted), no hard-coded colors or px values, both themes render, every number shows its unit, every status has icon + word, and selecting an entry updates the tree, viewport and inspector together.
+Before handing an app back, confirm: the three.js viewport renders and orbits, pans, zooms and selects, all six regions behave (or are deliberately omitted), no hard-coded colors or px values, both themes render, every number shows its unit, every status has icon + word, and selecting an entry updates the tree, viewport and inspector together.

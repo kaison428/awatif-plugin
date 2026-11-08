@@ -18,6 +18,11 @@ const { createServer } = await import("vite").catch(() => {
   console.error(`Missing dependencies: run \`npm install\` in ${pluginRoot}`);
   process.exit(2);
 });
+// The viewer is three.js (Awatif's getViewer: WebGL scene + OrbitControls). It is required, not optional.
+await import("three").catch(() => {
+  console.error(`three.js is required for the viewer: run \`npm install\` in ${pluginRoot}`);
+  process.exit(2);
+});
 
 const args = process.argv.slice(2);
 const flag = (name) => {
