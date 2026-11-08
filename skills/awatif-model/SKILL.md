@@ -25,7 +25,7 @@ description: Use only for creating structural models and running structural anal
    node <this skill's directory>/scripts/serve.mjs models/<model-name>/model.ts
    ```
 
-   The app mounts the model with Awatif's `createApp`, so the analysis runs in the browser with Awatif as the engine and re-runs on every change. Pass `--port <n>` if 5173 is taken, `--open` to open the browser, `--export <name>` for a multi-config file. The server keeps running, so start it as a background process, and stop it when the user is done.
+   The app's interface is the `awatif-ui` design system (its components and its three.js viewer). Awatif is only the engine: `createEngine` (`scripts/engine.ts`) runs the analysis in the browser and re-runs it on every change. Pass `--port <n>` if 5173 is taken, `--open` to open the browser, `--export <name>` for a multi-config file. The server keeps running, so start it as a background process, and stop it when the user is done.
 
 7. Report the key results (max displacement, reactions, governing forces per member) with units, and say how to work in the app (see "The live app").
 
@@ -33,14 +33,17 @@ description: Use only for creating structural models and running structural anal
 
 Everything is interactive and analysed in real time; the user never needs `results.json`.
 
-The viewer is three.js (Awatif's `getViewer`: a WebGL scene with OrbitControls, Z up). three.js is the mandatory viewer library: left-drag orbits, right-drag pans, the wheel zooms.
+The app is laid out in the `awatif-ui` six regions: a toolbar, the model tree (left), the viewport, the inspector (right), a results drawer under the viewport, and a status bar. The viewport is the awatif-ui three.js viewer (`skills/awatif-ui/assets/awatif-viewer.js`: WebGL with OrbitControls, Z up). three.js is the mandatory viewer library: left-drag orbits, right-drag pans, the wheel zooms, double-click frames the model.
 
-- **Select by dragging.** Open a component in the bottom bar (Supports, Loads, Design, Special) and activate an entry in its list. The viewer enters selection mode: drag a box **left to right** to add the points, lines and polygons it touches to the entry, **right to left** to remove them. Right-click in the viewer to leave selection mode.
-- **Edit the geometry.** With no entry active, drag a point to move it, click empty space to add a point, click a point, then click where the line should end (on a point or in empty space), right-click a point to delete it. Ctrl+Z undoes.
-- **Change parameters** (load magnitude, support type, section, mesh divisions) in the panel that opens beside the entry.
-- **Switch load case or combination** and linear/nonlinear analysis from the bottom bar; the **Report** button shows the design report.
-- **Edits are autosaved** to `model.live.json` next to the model (points, lines, polygons and component entries, with component types by name). `model.ts` is never overwritten.
-- **`model.ts` is the starting point.** Saving it reloads the app from the file, which discards in-app edits. Before changing `model.ts` for the user, read `model.live.json` and fold in any edits they made in the app.
+- **Select.** Click an item in the tree, the viewport or a results table; all of them, and the inspector, show the same selection.
+- **Assign geometry by dragging.** Select a component entry (a support, load, design member, mesh and so on) and press **Select points/lines/polygons** in the inspector. Drag a box **left to right** to add what it touches to the entry, **right to left** to remove it; a click toggles one item. Right-click or Esc leaves the mode.
+- **Edit the geometry.** Press **Edit geometry** in the toolbar. Drag a point to move it, click empty space to add a point, click a point and then where the line should end (a point or empty space), right-click a point or line to delete it. New points lie on the model's work plane (`display.workPlane`, default `XZ`) and snap to grid lines. Ctrl+Z (or **Undo**) undoes.
+- **Change parameters** (name, load case, load magnitude, support type, section, mesh divisions, combination factors, point coordinates) in the inspector.
+- **Add or delete** load cases, combinations and component entries with the **Add** menu over the tree and **Delete** in the inspector.
+- **Switch** linear or nonlinear analysis and the load case or combination ("All loads" applies every load) in the toolbar.
+- **Read results** in the drawer (Reactions, Displacements, governing line forces, Design utilization with Pass/Near limit/Fail) and in the inspector of a point or line. The viewport draws the deformed shape and the reactions; turn them and the loads on or off, and scale the deformation, in the Display panel. The status bar shows the analysis status, lines without a design entry and the maximum displacement.
+- **Edits are autosaved** to `model.live.json` next to the model, in the `AppConfig` shape of `model.ts`: `points`, `lines` and `polygons` as `[id, value]` pairs, then `loadCases`, `loadCombinations` and the component fields (`loads`, `supports`, `design`, ...) with load cases by name. `model.ts` is never overwritten.
+- **`model.ts` is the starting point.** Saving it reloads the app from the file, which discards in-app edits. Before changing `model.ts` for the user, read `model.live.json` and fold in any edits they made in the app (its fields can replace the matching fields of the config).
 - To answer questions about what the user sees in the app, read `model.live.json`, or rerun `analyze.mjs` after folding the edits into `model.ts`.
 
 ## Rules
@@ -55,6 +58,7 @@ The viewer is three.js (Awatif's `getViewer`: a WebGL scene with OrbitControls, 
 - For building foundations, use fixed supports unless the user specifies otherwise.
 - Always run the analysis with `scripts/analyze.mjs` or the live app (`scripts/serve.mjs`); never compute or estimate results by hand. The user works in the live app, so always launch it; never hand over only `results.json` or a static viewer.
 - Every viewer is three.js and interactive (orbit, pan, zoom, select). Never draw a model as a static image, SVG or 2D canvas. If the user wants a custom-branded viewer, build it with the `awatif-ui` skill, whose starter mounts the three.js viewer (`assets/awatif-viewer.js`). A model without loads still runs and gives zero results; say so instead of adding loads.
+- Never use the UI that ships inside the awatif library: not `createApp` (or anything else that `awatif/templates` exports from its index), `getViewer`, `getReport`, or anything from `@awatif/ui`. Every interface uses the `awatif-ui` design system and its viewer. Use awatif for analysis only: `createEngine` (`scripts/engine.ts`), or `createStates`/`runAnalysis` and `@awatif/components`. Type-only imports (`import type { AppConfig } from "awatif/templates"`) are fine. `serve.mjs` refuses to load a model that imports awatif's UI at runtime.
 - Loads act in the sign of their axis: gravity on `global-z` is a negative `w` or `Fz`.
 - The solver is 3D: every rigid-body motion must be restrained, including rotation about a member's own axis. `Linear solver failed` usually means a mechanism (e.g. a beam on `pinned` + `x-roller` with a generic member); restrain it at a support rather than changing loads.
 

@@ -2,11 +2,11 @@
 
 Sources: `templates/data-model.ts`, `templates/createStates.ts`, `components/data-model.ts`, `components/templates.ts`, `components/plugins.ts`, `components/*/data-model.ts`.
 
-Units (`createApp.ts`): positions in **meters**, forces in **kN**.
+Units: positions in **meters**, forces in **kN**.
 
 ## 1. AppConfig
 
-`createApp(config: AppConfig = {})`. `AppConfig = Model & { ... }`.
+`AppConfig` (type from `awatif/templates`, imported with `import type`) is what a `model.ts` exports and what `createEngine(config)` takes. `AppConfig = Model & { ... }`.
 
 ### Model
 
@@ -32,11 +32,9 @@ Units (`createApp.ts`): positions in **meters**, forces in **kN**.
 | Field           | Type                      | Default         | Notes                                                    |
 | --------------- | ------------------------- | --------------- | -------------------------------------------------------- |
 | `display`       | `DisplayOptions`          | see §5          |                                                          |
-| `canvasButtons` | `string[]`                | `["Report"]`    | `"Report"` is wired to the design report                 |
 | `analysis`      | `"linear" \| "nonlinear"` | `"linear"`      |                                                          |
 | `plugins`       | `Plugin[]`                | `[]`            | Templates join the built-ins, referenced by `templateId` |
 | `autoCenter`    | `boolean`                 | `true`          | `false` keeps grid framing and `display.displayScale`    |
-| `container`     | `HTMLElement \| null`     | `document.body` | `null` mounts nothing, returns element                   |
 
 ### Helper types
 
@@ -48,18 +46,7 @@ Units (`createApp.ts`): positions in **meters**, forces in **kN**.
 
 An unknown `loadCase` name throws: `Unknown load case "<name>". Declare it in \`loadCases\` first.`
 
-### createApp returns `App`
-
-| Field            | Type                                        |
-| ---------------- | ------------------------------------------- |
-| `element`        | `HTMLElement`                               |
-| `geometry`       | `Geometry`                                  |
-| `components`     | `Components`                                |
-| `mesh`           | `Mesh`                                      |
-| `display`        | `Display`                                   |
-| `analysisStatus` | `AnalysisStatus`                            |
-| `activeAnalysis` | `State<"linear" \| "nonlinear">`            |
-| `loadCaseIds`    | `Map<string, string>` (load case name → id) |
+Awatif's bundled UI (`createApp`, `@awatif/ui`) is never used; interfaces come from the `awatif-ui` design system, and the analysis from `createEngine` (`awatif-model`'s `scripts/engine.ts`).
 
 ## 2. Component entry
 
@@ -360,7 +347,9 @@ defaultSimSettings = { tol: 1e-3, maximum_iter: 500 }; // hosted solver caps max
 Minimal config:
 
 ```ts
-await createApp({
+import type { AppConfig } from "awatif/templates";
+
+export const model: AppConfig = {
   points: [
     [0, 0, 0],
     [6, 0, 0],
@@ -394,5 +383,5 @@ await createApp({
     },
   ],
   design: [{ name: "Beam", templateId: "concrete-member", geometry: [1] }],
-});
+};
 ```

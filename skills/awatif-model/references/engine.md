@@ -4,7 +4,11 @@ Source: `scripts/engine.ts`, built on awatif's `createStates` and `runAnalysis`.
 Run it on a model with `scripts/analyze.mjs` (see SKILL.md); import `createEngine`
 directly only for studies the runner does not cover (parameter sweeps, nonlinear).
 The engine is headless. The interactive app for the user is `scripts/serve.mjs`,
-which mounts the same model with `createApp`; both run the same pipeline.
+which runs this same engine in the browser behind the `awatif-ui` interface
+(`scripts/app/`); never awatif's own UI (`createApp`, `@awatif/ui`).
+
+`setModel` keeps the active load case or combination when the new model still
+has it (and keeps "all loads" as `null`); otherwise it falls back to the first case.
 
 ```ts
 // The state and analysis pipeline of an app, without any UI: change an input

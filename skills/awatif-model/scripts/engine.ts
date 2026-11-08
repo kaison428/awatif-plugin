@@ -145,6 +145,10 @@ export async function createEngine(config: AppConfig = {}): Promise<Engine> {
     next,
 
     setModel(model) {
+      // Keep the active load case or combination across edits when it still exists
+      // (`null`, every load applied, stays `null`)
+      const allLoads = display.activeLoadSelection.val === null;
+      const activeName = getActiveLoadName(display, caseIds, combinationIds);
       const fresh = createGeometry(model);
       const created = createComponents(model);
       caseIds = created.loadCaseIds;
@@ -156,10 +160,19 @@ export async function createEngine(config: AppConfig = {}): Promise<Engine> {
       geometry.lines.val = fresh.lines.val;
       geometry.polygons.val = fresh.polygons.val;
       components.val = created.components.val;
+      const keptCase = activeName !== null ? caseIds.get(activeName) : undefined;
+      const keptCombination =
+        activeName !== null ? combinationIds.get(activeName) : undefined;
       const firstCase = [...caseIds.values()][0];
-      display.activeLoadSelection.val = firstCase
-        ? { kind: "case", id: firstCase }
-        : null;
+      display.activeLoadSelection.val = allLoads
+        ? null
+        : keptCase
+        ? { kind: "case", id: keptCase }
+        : keptCombination
+          ? { kind: "combination", id: keptCombination }
+          : firstCase
+            ? { kind: "case", id: firstCase }
+            : null;
     },
 
     setParams(componentName, params) {
