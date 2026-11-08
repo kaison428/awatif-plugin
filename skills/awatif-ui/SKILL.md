@@ -5,6 +5,8 @@ description: Design system for structural analysis and modeling viewer apps buil
 
 # Structural viewer design system
 
+> **Interactive Awatif models:** to let a user work on a model (select nodes and members by dragging, edit loads and supports, see results update live), launch the live Awatif app with the `awatif-model` skill's `scripts/serve.mjs`. It runs Awatif as the engine in the browser. This design system is for custom-branded viewers and dashboards; its starter does not run analysis, so do not use it as the default viewer for a model.
+
 One rule runs the system: **the interface mirrors the data model.** Every app shows the same Awatif `Model` in the same six regions, styled only from tokens, so apps built months apart look like one product. Inside that frame an app is free to arrange its own content.
 
 ## Quick start
