@@ -67,9 +67,12 @@ claude --plugin-dir .
 
 Each case in `evals/` checks the files above (`model.ts`, `results.json`) and the final reply; the negative cases check that no `models/` folder is created.
 
+Run evals on Linux or macOS. On Windows, run them in WSL, since the shell sandbox needs Linux.
+
 ```
-npm run eval:wsl       # on Windows: syncs to a WSL copy and runs the eval there (the shell sandbox needs Linux)
-npm run eval           # on Linux/macOS
+npm run eval           # run every case
 npm run eval:collect   # copy the kept sandbox dirs into evals/results/<timestamp>/runs
 npm run eval:inspect   # browse collected runs
 ```
+
+`node_modules` holds native binaries for the OS that installed it (Vite's Rolldown, lightningcss). On Windows, install it from WSL and never from PowerShell or cmd in the same folder. Otherwise the sandbox can't load Vite and no `results.json` is written. If that happens, delete `node_modules` and run `npm install` again from WSL. For speed, clone the repo inside the WSL filesystem (e.g. `~/code/awatif-plugin`) rather than under `/mnt/c`.
