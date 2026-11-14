@@ -1,6 +1,6 @@
 # awatif-plugin
 
-Claude Code plugin for Awatif.
+Claude Code (and Codex) plugin for Awatif structural analysis.
 
 ## Install
 
@@ -10,26 +10,66 @@ On Claude Code 2.1.275 or later, install in one step from the marketplace:
 /plugin install awatif-structural --marketplace kaison428/awatif-plugin
 ```
 
-## Live model app
+The scripts need the plugin's own dependencies: run `npm install` in the plugin root once.
 
-The `awatif-model` skill builds a model and launches it as an interactive app. The interface is the `awatif-ui` design system (React components and a three.js viewer); Awatif only runs the analysis (`createEngine`) in the browser. Awatif's own bundled UI is never loaded.
+## Skills
+
+| Skill | Use it for |
+| --- | --- |
+| `awatif-model` | Building a structural model, running the analysis and launching it as a live app. |
+| `awatif-ui` | The design system (tokens, React components, three.js viewer) that the live app and any custom viewer are built with. |
+
+Awatif itself is only the analysis engine (`createEngine`). Its bundled UI (`createApp`, `@awatif/ui`) is never used.
+
+## What `awatif-model` produces
+
+For a request like "model a 6 m portal frame", the skill creates one folder per model:
 
 ```
-node skills/awatif-model/scripts/serve.mjs models/<name>/model.ts
+models/<model-name>/
+  model.ts         written by Claude: exports the AppConfig; the source of truth
+  results.json     written by analyze.mjs: headless results, for checking only
+  model.live.json  written by the live app: the model as edited in the browser
 ```
 
-Box-select nodes and members for loads and supports, draw and move geometry, edit parameters in the inspector, and the analysis re-runs on every change; reactions, displacements, line forces and design utilization show in the results drawer. Edits are autosaved to `model.live.json` (in `AppConfig` shape) next to the model. `scripts/analyze.mjs` runs the same model headlessly and writes `results.json` for inspection.
+and hands over a URL to the live app. Nothing else is written (no `models/index.ts`, no static images or HTML).
+
+1. **Author** `model.ts` (see `skills/awatif-model/references/data-model.md`).
+2. **Check** it headlessly. Runs every load case and combination and writes `results.json` next to the model:
+   ```
+   node skills/awatif-model/scripts/analyze.mjs models/<name>/model.ts [--export <name>] [--out <file>]
+   ```
+3. **Launch** the live app, the deliverable:
+   ```
+   node skills/awatif-model/scripts/serve.mjs models/<name>/model.ts [--port <n>] [--open] [--export <name>]
+   ```
+   Box-select nodes and members for loads and supports, draw and move geometry, edit parameters in the inspector; the analysis re-runs on every change and reactions, displacements, line forces and design utilization show in the results drawer. Edits are autosaved to `model.live.json`; `model.ts` is never overwritten, and saving `model.ts` reloads the app from it (discarding in-app edits).
 
 ## Layout
 
-- `.claude-plugin/plugin.json` – manifest
-- `skills/` – skills (`<name>/SKILL.md`)
-- `commands/` – slash commands
-- `agents/` – subagents
-- `hooks/hooks.json` – hooks
+- `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`: Claude Code manifest and marketplace
+- `.codex-plugin/plugin.json`: Codex manifest (keep its version in step with the Claude one)
+- `skills/awatif-model/`: `SKILL.md`, `references/` (data model, engine), `scripts/` (`analyze.mjs`, `serve.mjs`, `engine.ts`, the live app in `app/`), `assets/templates/` (example models)
+- `skills/awatif-ui/`: design system (`assets/`, `references/`, `scripts/scaffold.py`)
+- `evals/`: plugin eval cases (`prompt.md` + `graders/`, image cases add `case.yaml`, `fixture.sh`, `resources/`)
+- `scripts/`: eval helpers (below)
+- `agents/`, `commands/`: placeholder examples only; `hooks/hooks.json` is empty
+
+`skills/awatif-model/references/data-model.md` and `skills/awatif-ui/references/awatif-data-model.md` are the same file, so each skill is self-contained. Edit both together.
 
 ## Dev
 
 ```
 claude --plugin-dir .
+```
+
+## Evals
+
+Each case in `evals/` checks the files above (`model.ts`, `results.json`) and the final reply; the negative cases check that no `models/` folder is created.
+
+```
+npm run eval:wsl       # on Windows: syncs to a WSL copy and runs the eval there (the shell sandbox needs Linux)
+npm run eval           # on Linux/macOS
+npm run eval:collect   # copy the kept sandbox dirs into evals/results/<timestamp>/runs
+npm run eval:inspect   # browse collected runs
 ```

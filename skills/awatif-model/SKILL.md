@@ -5,6 +5,18 @@ description: Use only for creating structural models and running structural anal
 
 # Awatif
 
+## Output files
+
+Each model lives in its own folder, `models/<model-name>/`, and ends up with:
+
+| File | Written by | Purpose |
+| --- | --- | --- |
+| `model.ts` | You | The model: exports one `AppConfig`. The source of truth; the scripts never overwrite it. |
+| `results.json` | `scripts/analyze.mjs` (step 4) | Headless results of every load case and combination, for checking the model. Not the deliverable. |
+| `model.live.json` | `scripts/serve.mjs` (step 6), from the browser | The model as edited in the live app, in `AppConfig` shape. Written once the app opens in a browser, then on every edit. |
+
+Nothing else is created: no `models/index.ts`, no HTML, image or report files. The live app (a URL served by `serve.mjs`) is the deliverable.
+
 ## Workflow
 
 1. Create a `/models` folder in the project root if it does not exist.
@@ -54,7 +66,7 @@ The app is laid out in the `awatif-ui` six regions: a toolbar, the model tree (l
   - Unknown or unsupported section or material (e.g. HSS, W shapes): use a `generic-member` placeholder. Omit `params` for defaults, or set `elasticity`, `area`, `momentInertiaZ`, `momentInertiaY`, `shearModulus`, `torsionalConstant`. State in the design member name that it is a `placeholder`.
   - Do not size or check members.
 - Always define `gridLines` (a `grid-system` entry) before modelling, at the column lines, load positions, major transitions, lines of symmetry and floor/eaves levels, so the geometry follows the intended layout.
-- For 3D models, use the XY workplane.
+- 2D frames lie in the XZ plane (Z up), the app's default work plane. For 3D models, set `display: { workPlane: "XY" }` so points drawn in the app land on the floor plan.
 - For building foundations, use fixed supports unless the user specifies otherwise.
 - Always run the analysis with `scripts/analyze.mjs` or the live app (`scripts/serve.mjs`); never compute or estimate results by hand. The user works in the live app, so always launch it; never hand over only `results.json` or a static viewer.
 - Every viewer is three.js and interactive (orbit, pan, zoom, select). Never draw a model as a static image, SVG or 2D canvas. If the user wants a custom-branded viewer, build it with the `awatif-ui` skill, whose starter mounts the three.js viewer (`assets/awatif-viewer.js`). A model without loads still runs and gives zero results; say so instead of adding loads.
@@ -64,4 +76,4 @@ The app is laid out in the `awatif-ui` six regions: a toolbar, the model tree (l
 
 ## Examples
 
-- See `assets/templates` for built examples.
+- See `assets/templates` for built examples (`simpleBeam`, `portalFrame`, `flatSlab`, `demo`, `blank`).

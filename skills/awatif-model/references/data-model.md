@@ -333,7 +333,7 @@ type SimSettings = { tol: number; maximum_iter: number };
 defaultSimSettings = { tol: 1e-3, maximum_iter: 500 }; // hosted solver caps maximum_iter at 500
 ```
 
-## 8. Example models (`templates/models/`)
+## 8. Example models (awatif `templates/models/`; all but `customComponent` are copied to `awatif-model`'s `assets/templates`)
 
 | Export                          | Contents                                                                                                                                                                                           |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

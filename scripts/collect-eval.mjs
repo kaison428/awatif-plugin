@@ -47,9 +47,16 @@ for (const c of aggregate.cases) {
       }
       const dest = path.join(resultDir, "runs", c.name, `${arm}-${i + 1}`);
       fs.rmSync(dest, { recursive: true, force: true });
-      copy(path.join(temp, "home", "cwd"), path.join(dest, "cwd"));
+      // Newer Claude Code moves home/ and tmp/ into a mode-000 sealed/ dir after the run.
+      const sealed = path.join(temp, "sealed");
+      let base = temp;
+      if (fs.existsSync(sealed)) {
+        fs.chmodSync(sealed, 0o500);
+        base = sealed;
+      }
+      copy(path.join(base, "home", "cwd"), path.join(dest, "cwd"));
       copy(path.join(temp, "out"), path.join(dest, "out"));
-      copy(path.join(temp, "tmp"), path.join(dest, "tmp"));
+      copy(path.join(base, "tmp"), path.join(dest, "tmp"));
       console.log(`copy  ${label}`);
       copied++;
     });

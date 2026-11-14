@@ -1,5 +1,5 @@
 ---
-name: structural-viewer-design
+name: awatif-ui
 description: Design system for structural analysis and modeling viewer apps built on the Awatif data model (points, lines, polygons, load cases, component entries like loads, supports, mesh, design). Use whenever you build, style, extend or review a web UI that shows a structural model, a model tree, an inspector for loads/supports/members, internal-force or utilization results, or a 3D/2D model viewport. Also use for any one-off tool in this family, even if the user only says "make a viewer", "add a results panel", "make it match our other apps" or asks about Nunito, the teal logo, colors, tokens or layout.
 ---
 
