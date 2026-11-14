@@ -17,14 +17,18 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-const { createServer } = await import("vite").catch(() => {
-  console.error(`Missing dependencies: run \`npm install\` in ${pluginRoot}`);
+const { createServer } = await import("vite").catch((e) => {
+  // Print the cause: a "native binding" error means node_modules was installed
+  // on another OS (e.g. Windows) than the one running this script (e.g. WSL)
+  console.error(`Cannot load vite: ${e.message}`);
+  console.error(`Run \`npm install\` in ${pluginRoot} on the OS that runs this script.`);
   process.exit(2);
 });
 // The viewer is three.js (awatif-ui's AwatifViewer) and the UI is React; both are required
 for (const dep of ["three", "react", "react-dom"])
-  await import(dep).catch(() => {
-    console.error(`${dep} is required for the live app: run \`npm install\` in ${pluginRoot}`);
+  await import(dep).catch((e) => {
+    console.error(`${dep} is required for the live app: ${e.message}`);
+    console.error(`Run \`npm install\` in ${pluginRoot} on the OS that runs this script.`);
     process.exit(2);
   });
 

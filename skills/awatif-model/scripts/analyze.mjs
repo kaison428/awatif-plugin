@@ -9,8 +9,11 @@ import { fileURLToPath } from "node:url";
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 // Vite and awatif come from the plugin's own dependencies
-const { runnerImport } = await import("vite").catch(() => {
-  console.error(`Missing dependencies: run \`npm install\` in ${pluginRoot}`);
+const { runnerImport } = await import("vite").catch((e) => {
+  // Print the cause: a "native binding" error means node_modules was installed
+  // on another OS (e.g. Windows) than the one running this script (e.g. WSL)
+  console.error(`Cannot load vite: ${e.message}`);
+  console.error(`Run \`npm install\` in ${pluginRoot} on the OS that runs this script.`);
   process.exit(2);
 });
 
