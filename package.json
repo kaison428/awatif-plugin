@@ -2,8 +2,7 @@
   "scripts": {
     "eval": "claude plugin eval . --scaffold --keep-temp --ablation none --model opus --judge-model sonnet --allow-tools Write Bash --no-publish",
     "eval:collect": "node scripts/collect-eval.mjs",
-    "eval:inspect": "node scripts/inspect-eval.mjs",
-    "eval:wsl": "bash scripts/eval-wsl.sh"
+    "eval:inspect": "node scripts/inspect-eval.mjs"
   },
   "dependencies": {
     "awatif": "github:madil4/awatif#feat/artifacts",
