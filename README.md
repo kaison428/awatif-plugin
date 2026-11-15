@@ -43,7 +43,7 @@ and hands over a URL to the live app. Nothing else is written (no `models/index.
    ```
    node skills/awatif-model/scripts/serve.mjs models/<name>/model.ts [--port <n>] [--open] [--export <name>]
    ```
-   Box-select nodes and members for loads and supports, draw and move geometry, edit parameters in the inspector; the analysis re-runs on every change and reactions, displacements, line forces and design utilization show in the results drawer. Edits are autosaved to `model.live.json`; `model.ts` is never overwritten, and saving `model.ts` reloads the app from it (discarding in-app edits).
+   Box-select nodes and members for loads and supports, draw and move geometry, edit parameters in the inspector; the analysis re-runs on every change and reactions, displacements, line forces and design utilization show in the results drawer, and the Display panel draws internal force diagrams (N, V, M) on the members. Edits are autosaved to `model.live.json`; `model.ts` is never overwritten, and saving `model.ts` reloads the app from it (discarding in-app edits).
 
 ## Layout
 

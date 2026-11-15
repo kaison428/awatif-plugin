@@ -80,6 +80,7 @@
 .sv-legend { display: inline-flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: var(--space-3); background: var(--surface-raised); color: var(--ink); border-radius: var(--radius-lg); box-shadow: var(--shadow-float); }
 .sv-legend__head { display: flex; align-items: baseline; gap: var(--space-2); }
 .sv-legend__unit, .sv-legend__note { color: var(--ink-muted); }
+.sv-legend__note { white-space: pre-line; }
 .sv-legend__body { display: flex; gap: var(--space-2); margin: var(--space-2) 0; }
 .sv-legend__bar { display: flex; flex-direction: column; width: 16px; border-radius: var(--radius-sm); overflow: hidden; }
 .sv-legend__bar span { flex: 1; }

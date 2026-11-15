@@ -145,6 +145,37 @@ const SUPPORT_TYPES = UI.ENUMS["point-support.type"];
 const RELEASE_TYPES = UI.ENUMS["releases.type"];
 const UDL_DIRECTIONS = UI.ENUMS["distributed-load.direction"];
 const dim = { color: "var(--ink-muted)" };
+// Line results drawn on the members (brand book: Display options > Line results)
+const LINE_RESULTS = [
+  { value: "N", label: "Axial", unit: "kN", note: "Compression is positive" },
+  { value: "Vy", label: "Shear Y", unit: "kN", note: "Signed with Bending Z" },
+  { value: "Vz", label: "Shear Z", unit: "kN", note: "Signed with Bending Y" },
+  { value: "Mx", label: "Torsion", unit: "kN·m" },
+  { value: "My", label: "Bending Y", unit: "kN·m", note: "Sagging is negative; drawn on the tension side" },
+  { value: "Mz", label: "Bending Z", unit: "kN·m", note: "Sagging is negative; drawn on the tension side" },
+];
+
+// Hover tooltip from the results: a line's governing internal forces, a point's displacement and reactions
+function hoverText(id, summary) {
+  const p = summary && UI.parseId(id);
+  if (!p) return null;
+  const rows = (pairs) => pairs.filter(([, v]) => Math.abs(v) >= 0.005).map(([k, v, unit]) => `${k}  ${num(v)} ${unit}`);
+  if (p.kind === "line") {
+    const r = summary.lines.find((x) => x.line === p.id);
+    const out = r && rows(LINE_RESULTS.map((l) => [l.label, r[l.value], l.unit]));
+    return out?.length ? [`Line ${p.id}`, ...out].join("\n") : null;
+  }
+  if (p.kind === "point") {
+    const d = summary.displacements.find((x) => x.point === p.id);
+    const r = summary.reactions.find((x) => x.point === p.id);
+    const reaction = r ? rows(["Fx", "Fy", "Fz", "Mx", "My", "Mz"].map((k) => [k, r[k], k.startsWith("F") ? "kN" : "kN·m"])) : [];
+    const out = [`Point ${p.id}`];
+    if (d) out.push(...["ux", "uy", "uz"].map((k) => `${k}  ${num(d[k], 5)} m`));
+    if (reaction.length) out.push("Reaction", ...reaction);
+    return out.length > 1 ? out.join("\n") : null;
+  }
+  return null;
+}
 
 // Next grid line id after `id`: A -> B, 3 -> 4, Z2 -> Z3
 function nextGridId(id, taken) {
@@ -316,8 +347,9 @@ function App() {
   const [activeLoad, setActiveLoad] = useState(() => engine.getAll().activeLoad);
   const [analysis, setAnalysis] = useState(() => engine.getAll().analysis);
   const [tab, setTab] = useState("reactions");
-  const [display, setDisplay] = useState({ deformed: true, reactions: true, loads: true, loadLabels: true, scale: 1 });
+  const [display, setDisplay] = useState({ deformed: true, reactions: true, loads: true, loadLabels: true, scale: 1, diagram: "", diagramScale: 1, diagramLabels: true });
   const [view, setView] = useState(null); // null: 3D, else { plane, offset }
+  const [diagram, setDiagram] = useState(null); // the drawn line result's { key, min, max } (viewer.diagramRange)
   const [layout, setLayout] = useState(loadLayout);
   const [version, setVersion] = useState(0);
   // Assign panel forms
@@ -381,7 +413,7 @@ function App() {
     setSelId(all.length === 1 ? all[0] : null);
   }
 
-  latest.current = { model, mode, commit, select, changeSelection };
+  latest.current = { model, mode, commit, select, changeSelection, summary: null };
 
   // ---------- viewer ----------
   useEffect(() => {
@@ -392,6 +424,7 @@ function App() {
       onSelect: (id) => latest.current.select(id),
       onSelectionChange: (sel) => latest.current.changeSelection(sel),
       onHover: setHoverId,
+      hoverInfo: (id) => hoverText(id, latest.current.summary),
       onModeExit: () => setMode({ mode: "view", entry: null }),
       onAssign: (ids, add) => {
         const { model, mode, commit } = latest.current;
@@ -466,10 +499,13 @@ function App() {
   useEffect(() => {
     const ok = results.status?.success;
     viewer.current?.setResults(
-      ok ? { nodes: results.nodes, elements: results.elements, displacements: results.displacements, reactions: results.reactions } : null,
-      { deformed: display.deformed, reactions: display.reactions, scale: display.scale },
+      ok
+        ? { nodes: results.nodes, elements: results.elements, displacements: results.displacements, reactions: results.reactions, internalForces: results.internalForces, lineToElements: results.geometryMapping?.lineToElements }
+        : null,
+      { deformed: display.deformed, reactions: display.reactions, scale: display.scale, diagram: display.diagram || null, diagramScale: display.diagramScale, diagramLabels: display.diagramLabels },
     );
-  }, [results, display.deformed, display.reactions, display.scale]);
+    setDiagram(viewer.current?.diagramRange() ?? null);
+  }, [results, display.deformed, display.reactions, display.scale, display.diagram, display.diagramScale, display.diagramLabels]);
 
   useEffect(() => {
     try {
@@ -507,6 +543,7 @@ function App() {
   }, []);
 
   const summary = useMemo(() => summarize(results, model), [results]);
+  latest.current.summary = summary;
 
   // ---------- load selection and analysis ----------
   function chooseLoad(value) {
@@ -1423,9 +1460,50 @@ function App() {
             })
           : null,
         display.deformed && scale ? h("span", { className: "caption", style: dim }, "Displacements drawn ×" + num(scale, 0)) : null,
+        h(
+          "div",
+          { style: { display: "flex", flexDirection: "column", gap: "var(--space-1)" } },
+          h("span", { className: "caption", style: dim }, "Line results"),
+          h(SV.Select, {
+            "aria-label": "Line results",
+            options: [{ value: "", label: "None" }, ...LINE_RESULTS.map((r) => ({ value: r.value, label: `${r.label} (${r.value})` }))],
+            value: display.diagram,
+            onChange: (v) => setDisplay((d) => ({ ...d, diagram: v })),
+          }),
+        ),
+        display.diagram
+          ? h(
+              F,
+              null,
+              h(SV.Select, {
+                "aria-label": "Diagram scale",
+                options: [0.25, 0.5, 1, 2, 4].map((v) => ({ value: String(v), label: "Diagram ×" + v })),
+                value: String(display.diagramScale),
+                onChange: (v) => setDisplay((d) => ({ ...d, diagramScale: Number(v) })),
+              }),
+              toggle("diagramLabels", "Diagram values"),
+            )
+          : null,
       ),
     ),
   );
+
+  // Legend of the drawn line result: diverging, symmetric about zero; the extremes go in the note
+  const lineResult = LINE_RESULTS.find((r) => r.value === display.diagram);
+  let legend = null;
+  if (lineResult && summary && diagram?.key === lineResult.value && (diagram.min || diagram.max)) {
+    const span = Math.max(Math.abs(diagram.min), Math.abs(diagram.max));
+    legend = h(SV.ContourLegend, {
+      title: lineResult.label,
+      unit: lineResult.unit,
+      scale: "diverging",
+      min: -span,
+      max: span,
+      decimals: 2,
+      height: 112,
+      note: [lineResult.note, `Min ${num(diagram.min)}, max ${num(diagram.max)}`].filter(Boolean).join("\n"),
+    });
+  }
 
   // Status bar: status = icon + word + color
   const status = results.status ?? {};
@@ -1475,7 +1553,7 @@ function App() {
       leftWidth: layout.sizes.left ? layout.sizes.left + "px" : undefined,
       rightWidth: layout.sizes.right ? layout.sizes.right + "px" : undefined,
       bottomHeight: layout.sizes.bottom ? layout.sizes.bottom + "px" : undefined,
-      overlays: { topLeft: viewPanel, topRight: displayPanel },
+      overlays: { topLeft: viewPanel, topRight: displayPanel, ...(legend ? { bottomLeft: legend } : {}) },
     },
     h("div", { id: "viewport", ref: host, style: { position: "absolute", inset: 0, background: "var(--viewport)" } }),
   );

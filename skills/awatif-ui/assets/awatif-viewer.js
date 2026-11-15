@@ -14,6 +14,7 @@
  *     onAssign: (ids, add) => ...,      // assign mode: geometry ids of the active kind, add or remove
  *     onEdit: (op) => ...,              // edit mode: { type: 'move-point' | 'add-point' | 'add-line' | 'delete-point' | 'delete-line', ... }
  *     onModeExit: () => ...,            // right-click (no drag) in assign mode, or Escape
+ *     hoverInfo: (id) => string | null, // text of a tooltip at the cursor for the hovered id ('\n' breaks lines)
  *     geometryKind: (entry) => 'point' | 'line' | 'polygon' | null,  // which geometry an entry's ids refer to
  *     workPlane: 'XY' | 'XZ' | 'YZ', workPlaneOffset: 0,             // where new points go in edit mode (default XZ, 0)
  *     snap: 0.1,                        // edit mode grid step in m; grid-line ordinates snap first
@@ -25,9 +26,12 @@
  *   viewer.setModel(model);                          // redraw after the model changes
  *   viewer.setMode('view' | 'assign' | 'edit', { kind: 'point' | 'line' | 'polygon' });  // kind: assign only
  *   viewer.setView(null | { plane: 'XY' | 'XZ' | 'YZ', offset });  // null: 3D; else a 2D view of that plane
- *   viewer.setResults({ nodes, elements, displacements, reactions } | null, { deformed, reactions, scale });
+ *   viewer.setResults({ nodes, elements, displacements, reactions, internalForces, lineToElements } | null,
+ *                     { deformed, reactions, scale, diagram, diagramScale, diagramLabels });
+ *     // diagram: null | 'N' | 'Vy' | 'Vz' | 'Mx' | 'My' | 'Mz', a line result drawn on the members
  *   viewer.setDisplay({ loads, loadLabels, supports, gridLines, mesh });  // toggle model layers (all on by default)
  *   viewer.setWorkPlane(plane, offset);              // where edit mode puts new points
+ *   viewer.diagramRange();                           // { key, min, max, scale } of the drawn line result, or null
  *   viewer.fit();                                    // frame the model (or the plane, in a plane view)
  *   viewer.dispose();
  *
@@ -97,6 +101,22 @@ function localAxes(a, b) {
   return { x, y, z };
 }
 
+/* The solver's member axes (awatif getTransformationMatrix): x along the member, y horizontal, z = x × y;
+ * a vertical member takes y = global Y. Internal forces are reported in these axes. */
+function solverAxes(a, b) {
+  const x = new THREE.Vector3().subVectors(b, a);
+  if (x.length() < 1e-9) return null;
+  x.normalize();
+  const D = Math.hypot(x.x, x.y);
+  if (D < 1e-9) return { x, y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(-Math.sign(x.z), 0, 0) };
+  return { x, y: new THREE.Vector3(-x.y / D, x.x / D, 0), z: new THREE.Vector3((-x.x * x.z) / D, (-x.y * x.z) / D, D) };
+}
+
+/* Line result diagrams: the local axis each force is drawn along. Bending lands on the tension side
+ * (My along +z, Mz along -y, since sagging is negative); each shear is drawn on the side of its moment's slope. */
+const DIAGRAM_AXIS = { N: ['z', 1], Vy: ['y', 1], Vz: ['z', 1], Mx: ['z', 1], My: ['z', 1], Mz: ['y', -1] };
+const DIV_STOPS = ['div-neg-2', 'div-neg-1', 'div-mid', 'div-pos-1', 'div-pos-2'];
+
 /* 2D screen-space helpers for box selection */
 function inRect(p, r) { return p.x >= r.x0 && p.x <= r.x1 && p.y >= r.y0 && p.y <= r.y1; }
 function cross(a, b, c) { return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x); }
@@ -151,6 +171,7 @@ export function createViewer(element, model, options = {}) {
   const onAssign = options.onAssign || (() => {});
   const onEdit = options.onEdit || (() => {});
   const onModeExit = options.onModeExit || (() => {});
+  const hoverInfo = options.hoverInfo || (() => null);
   const kindOf = (entry) => {
     const k = options.geometryKind ? options.geometryKind(entry) : undefined;
     return k === undefined ? defaultGeometryKind(entry) : k;
@@ -166,13 +187,37 @@ export function createViewer(element, model, options = {}) {
   element.appendChild(renderer.domElement);
 
   const labels = new CSS2DRenderer();
-  Object.assign(labels.domElement.style, { position: 'absolute', inset: '0', pointerEvents: 'none' });
+  // zIndex 0 makes a stacking context: CSS2DRenderer's per-label z-index sorting stays below the viewport's panes
+  Object.assign(labels.domElement.style, { position: 'absolute', inset: '0', pointerEvents: 'none', zIndex: '0' });
   element.appendChild(labels.domElement);
 
   // Selection box (assign mode, Shift+drag in view mode): solid when adding (left to right), dashed when removing
   const box = document.createElement('div');
   Object.assign(box.style, { position: 'absolute', display: 'none', pointerEvents: 'none', borderWidth: '1px', borderColor: 'var(--elem-selected)' });
   element.appendChild(box);
+
+  // Hover tooltip: above the labels, below the viewport's panes (zIndex 0, after the labels layer)
+  const tip = document.createElement('div');
+  tip.className = 'caption data';
+  Object.assign(tip.style, {
+    position: 'absolute', display: 'none', pointerEvents: 'none', zIndex: '0', whiteSpace: 'pre', color: 'var(--ink)',
+    background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+    boxShadow: 'var(--shadow-float)', padding: 'var(--space-1) var(--space-2)',
+  });
+  element.appendChild(tip);
+  function showTip(id, ev) {
+    const text = id && state.mode === 'view' ? hoverInfo(id) : null;
+    if (!text) { tip.style.display = 'none'; return; }
+    if (tip.textContent !== text) tip.textContent = text;
+    tip.style.display = 'block';
+    const rect = element.getBoundingClientRect();
+    const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+    // Below right of the cursor, flipped to stay inside the viewport
+    const left = x + 14 + tip.offsetWidth > rect.width ? x - 10 - tip.offsetWidth : x + 14;
+    const top = y + 18 + tip.offsetHeight > rect.height ? y - 8 - tip.offsetHeight : y + 18;
+    tip.style.left = Math.max(0, left) + 'px';
+    tip.style.top = Math.max(0, top) + 'px';
+  }
 
   const scene = new THREE.Scene();
   const perspective = new THREE.PerspectiveCamera(45, 1, 0.01, 10000);
@@ -214,7 +259,7 @@ export function createViewer(element, model, options = {}) {
     snap: options.snap === undefined ? 0.1 : options.snap,
   };
   let results = null;
-  let resultOptions = { deformed: true, reactions: true, scale: 1 };
+  let resultOptions = { deformed: true, reactions: true, scale: 1, diagram: null, diagramScale: 1, diagramLabels: true };
   // { points, lines, polygons, box, extent, ghost: {point,line,polygon: Set}, loadArrows: [{ id, tail, tip }] }
   let draw = null;
   const lineMaterials = new Set();
@@ -542,6 +587,7 @@ export function createViewer(element, model, options = {}) {
   function drawResults() {
     clearGroup(resultsGroup);
     lastDeformationScale = 0;
+    lastDiagram = null;
     if (!results || !draw) { render(); return; }
     const C = (n) => new THREE.Color(token(n));
     const nodes = results.nodes || [];
@@ -585,7 +631,109 @@ export function createViewer(element, model, options = {}) {
         resultsGroup.add(label(f.length().toFixed(2) + ' kN', tail, 'var(--elem-reaction)'));
       });
     }
+
+    if (resultOptions.diagram && results.internalForces) drawDiagram(resultOptions.diagram, nodes, C);
     render();
+  }
+
+  /* One line result (N, Vy, Vz, Mx, My, Mz) as a filled diagram on the undeformed members: colored with the
+   * diverging ramp (symmetric about zero), outlined in ink-muted, one value per geometry line labelled: at
+   * midspan when the force is uniform along the line (equal to the shown 2 decimals), otherwise at the
+   * governing (largest magnitude) location. Members off the viewed plane are faint and unlabelled. */
+  let lastDiagram = null;
+  function drawDiagram(key, nodes, C) {
+    const forces = results.internalForces;
+    const lineToElements = results.lineToElements || new Map();
+    let maxAbs = 0, min = 0, max = 0;
+    forces.forEach((f) => (f[key] || []).forEach((v) => {
+      maxAbs = Math.max(maxAbs, Math.abs(v));
+      min = Math.min(min, v);
+      max = Math.max(max, v);
+    }));
+    lastDiagram = { key, min, max, scale: 0 };
+    if (maxAbs < 1e-9) return;
+    const k = ((draw.extent * 0.08) / maxAbs) * (resultOptions.diagramScale || 1);
+    lastDiagram.scale = k;
+    const [axisName, sign] = DIAGRAM_AXIS[key];
+    const stops = DIV_STOPS.map((n) => C(n));
+    const colorOf = (v) => {
+      const t = Math.max(0, Math.min(1, (v / maxAbs + 1) / 2)) * (stops.length - 1);
+      const i = Math.min(stops.length - 2, Math.floor(t));
+      return stops[i].clone().lerp(stops[i + 1], t - i);
+    };
+    const nodeOnPlane = (n) => !!nodes[n] && onPlane({ x: nodes[n][0], y: nodes[n][1], z: nodes[n][2] }, draw.extent);
+    const sets = { on: { fill: [], fillColor: [], edge: [] }, off: { fill: [], fillColor: [], edge: [] } };
+    const tri = (set, ...pv) => pv.forEach(([p, v]) => { set.fill.push(p.x, p.y, p.z); const c = colorOf(v); set.fillColor.push(c.r, c.g, c.b); });
+    const edge = (set, a, b) => set.edge.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    const labelled = [];
+
+    // Every element of a geometry line, in order; mesh elements outside any line are drawn unlabelled
+    const groups = [...lineToElements.entries()].map(([line, els]) => ({ line, els }));
+    const inLine = new Set(groups.flatMap((g) => g.els));
+    forces.forEach((_, e) => { if (!inLine.has(e)) groups.push({ line: null, els: [e] }); });
+
+    groups.forEach(({ line, els }) => {
+      let hi = null, lo = null, gov = null, on = true, first = null, last = null;
+      els.forEach((e) => {
+        const f = forces.get(e);
+        const el = (results.elements || [])[e];
+        if (!f || !f[key] || !el || el.length !== 2 || !nodes[el[0]] || !nodes[el[1]]) return;
+        const a = new THREE.Vector3(...nodes[el[0]]), b = new THREE.Vector3(...nodes[el[1]]);
+        const ax = solverAxes(a, b);
+        if (!ax) return;
+        const dir = ax[axisName].multiplyScalar(sign * k);
+        const [va, vb] = f[key];
+        const da = a.clone().addScaledVector(dir, va), db = b.clone().addScaledVector(dir, vb);
+        const elOn = nodeOnPlane(el[0]) && nodeOnPlane(el[1]);
+        on = on && elOn;
+        const set = sets[elOn ? 'on' : 'off'];
+        if (va * vb < 0) {
+          // Split where the diagram crosses the member, so each part keeps its own side
+          const t = va / (va - vb);
+          const z = a.clone().lerp(b, t);
+          tri(set, [a, va], [da, va], [z, 0]);
+          tri(set, [z, 0], [db, vb], [b, vb]);
+        } else {
+          tri(set, [a, va], [da, va], [db, vb]);
+          tri(set, [a, va], [db, vb], [b, vb]);
+        }
+        edge(set, da, db);
+        if (!first) first = { p: a, d: da, set };
+        last = { p: b, d: db, set };
+        [[da, va], [db, vb]].forEach(([p, v]) => {
+          if (!hi || v > hi.v) hi = { p, v };
+          if (!lo || v < lo.v) lo = { p, v };
+          if (!gov || Math.abs(v) > Math.abs(gov.v)) gov = { p, v };
+        });
+      });
+      // Close the diagram at the line's ends
+      if (first) edge(first.set, first.p, first.d);
+      if (last) edge(last.set, last.p, last.d);
+      if (line !== null && on && hi && resultOptions.diagramLabels !== false) {
+        const shown = (v) => v.toFixed(2);
+        if (Math.abs(gov.v) > maxAbs * 1e-3) {
+          const uniform = shown(hi.v) === shown(lo.v);
+          labelled.push(uniform ? { p: first.d.clone().lerp(last.d, 0.5), v: gov.v } : gov);
+        }
+      }
+    });
+
+    const ink = C('ink-muted');
+    ['on', 'off'].forEach((which) => {
+      const s = sets[which];
+      const objs = [];
+      if (s.fill.length) {
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.Float32BufferAttribute(s.fill, 3));
+        g.setAttribute('color', new THREE.Float32BufferAttribute(s.fillColor, 3));
+        const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, transparent: true, opacity: 0.75, depthWrite: false }));
+        mesh.renderOrder = 1;
+        objs.push(mesh);
+      }
+      if (s.edge.length) objs.push(new LineSegments2(new LineSegmentsGeometry().setPositions(s.edge), lineMat(ink, 1.25)));
+      objs.forEach((o) => resultsGroup.add(which === 'on' ? o : fade(o)));
+    });
+    labelled.forEach(({ p, v }) => resultsGroup.add(label(v.toFixed(2).replace('-', '−'), p, 'var(--' + (v < 0 ? 'div-neg-2' : 'div-pos-2') + ')')));
   }
 
   function refresh() { rebuild(); drawResults(); }
@@ -893,12 +1041,13 @@ export function createViewer(element, model, options = {}) {
       rebuild();
       return;
     }
-    if (ev.buttons) return;
+    if (ev.buttons) { tip.style.display = 'none'; return; }
     const id = state.mode === 'assign'
       ? (() => { const k = pickOfKind(ev, state.assignKind); return k === null ? null : state.assignKind + '-' + k; })()
       : state.mode === 'edit' ? pick(ev, { point: true, line: true, polygon: true, load: false }) : pick(ev);
     renderer.domElement.style.cursor = state.mode === 'edit' ? (id && id.startsWith('point-') ? 'move' : 'crosshair') : id ? 'pointer' : 'default';
     if (id !== state.hovered) { state.hovered = id; rebuild(); onHover(id); }
+    showTip(id, ev);
     if (state.mode === 'edit' && state.lineStart !== null) {
       const pid = pickPoint(ev);
       const hit = pid !== null ? draw.points.get(pid) : planeHit(ev);
@@ -1012,6 +1161,7 @@ export function createViewer(element, model, options = {}) {
   };
 
   const onLeave = () => {
+    tip.style.display = 'none';
     if (state.hovered) { state.hovered = null; rebuild(); onHover(null); }
   };
   const onDbl = () => { if (state.mode === 'view') fit(); };
@@ -1081,6 +1231,8 @@ export function createViewer(element, model, options = {}) {
     setWorkPlane(plane, offset) { state.workPlane = plane || 'XZ'; state.workPlaneOffset = offset || 0; },
     // Scale applied to the drawn displacements (0 when none are drawn)
     deformationScale() { return lastDeformationScale; },
+    // The drawn line result: { key, min, max, scale } (scale: m per unit of force), or null
+    diagramRange() { return lastDiagram ? { ...lastDiagram } : null; },
     fit,
     render,
     dispose() {
