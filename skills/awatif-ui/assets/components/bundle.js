@@ -107,17 +107,23 @@
   }
 
   /* ---------- Panel ---------- */
+  // Collapsible panels fold to their header. Uncontrolled (defaultOpen) or controlled (open + onToggle).
   function Panel(props) {
     var st = useState(props.defaultOpen !== false);
-    var open = st[0], setOpen = st[1];
     var collapsible = !!props.collapsible;
+    var controlled = props.open !== undefined;
+    var open = controlled ? !!props.open : st[0];
     var isOpen = collapsible ? open : true;
+    function toggle() {
+      if (!controlled) st[1](!open);
+      if (props.onToggle) props.onToggle(!open);
+    }
     var titleEl = collapsible
-      ? h('button', { type: 'button', className: 'sv-panel__toggle', 'aria-expanded': isOpen, onClick: function () { setOpen(!open); } },
+      ? h('button', { type: 'button', className: 'sv-panel__toggle', 'aria-expanded': isOpen, onClick: toggle },
           h(Chevron, { open: isOpen }),
           h('span', { className: 'overline sv-caps' }, props.title))
       : h('h2', { className: 'sv-panel__title overline sv-caps' }, props.title);
-    return h('section', { className: cx('sv-panel', props.flush && 'sv-panel--flush', props.className) },
+    return h('section', { className: cx('sv-panel', props.flush && 'sv-panel--flush', !isOpen && 'is-collapsed', props.className) },
       h('header', { className: 'sv-panel__head' },
         titleEl,
         props.actions ? h('div', { className: 'sv-panel__actions' }, props.actions) : null),
@@ -174,12 +180,28 @@
   }
 
   /* ---------- PropertyGrid ---------- */
+  // A group with `collapsible: true` folds to its title. Its open state is the group's `open` when given
+  // (report changes with onGroupToggle(title, open)), else kept here, starting from `defaultOpen` (true).
   function PropertyGrid(props) {
+    var st = useState({});
+    var folded = st[0], setFolded = st[1];
     return h('div', { className: cx('sv-props', props.className), role: 'group' },
       (props.groups || []).map(function (g, gi) {
+        var key = g.title || String(gi);
+        var open = !g.collapsible ? true : g.open !== undefined ? !!g.open : folded[key] !== undefined ? !folded[key] : g.defaultOpen !== false;
+        function toggle() {
+          var next = Object.assign({}, folded);
+          next[key] = open;
+          setFolded(next);
+          if (props.onGroupToggle) props.onGroupToggle(key, !open);
+        }
+        var title = null;
+        if (g.title) title = g.collapsible
+          ? h('button', { type: 'button', className: 'sv-props__title sv-props__toggle overline sv-caps', 'aria-expanded': open, onClick: toggle }, h(Chevron, { open: open }), g.title)
+          : h('div', { className: 'sv-props__title overline sv-caps' }, g.title);
         return h('div', { key: gi, className: 'sv-props__group' },
-          g.title ? h('div', { className: 'sv-props__title overline sv-caps' }, g.title) : null,
-          (g.rows || []).map(function (r, ri) {
+          title,
+          !open ? null : (g.rows || []).map(function (r, ri) {
             var num = r.numeric || typeof r.value === 'number';
             var id = 'sv-prop-' + gi + '-' + ri;
             var ctrl = r.control || (r.editable ? 'input' : null);
@@ -187,7 +209,7 @@
             var el;
             if (ctrl === 'select') el = h(Select, { options: r.options, defaultValue: r.value, labelledBy: id, onChange: onCh });
             else if (ctrl === 'checkbox') el = h(Checkbox, { defaultChecked: !!r.value, labelledBy: id, onChange: onCh });
-            else if (ctrl === 'input') el = h('input', { className: cx('sv-input', num ? 'data is-num' : 'ui'), defaultValue: r.value, 'aria-labelledby': id, onChange: function (e) { onCh(e.target.value); } });
+            else if (ctrl === 'input') el = h('input', { className: cx('sv-input', num ? 'data is-num' : 'ui'), defaultValue: r.value, placeholder: r.placeholder, 'aria-labelledby': id, onChange: function (e) { onCh(e.target.value); } });
             else el = h('span', { className: cx(num ? 'data' : 'ui', 'sv-props__value') }, r.value);
             return h('div', { key: ri, className: 'sv-props__row' },
               h('span', { className: 'ui sv-props__label', id: id }, r.label),
@@ -258,21 +280,77 @@
   }
 
   /* ---------- AppShell ---------- */
+  // Regions fold with `collapsed: { left, right, bottom }` and onToggle(region): a folded side becomes a
+  // narrow rail, a folded drawer a single bar, each with a button that opens it again. With onResize(region, px)
+  // the open regions get a drag handle on their inner edge.
+  function Resizer(props) {
+    function down(ev) {
+      if (ev.button !== 0) return;
+      ev.preventDefault();
+      var el = ev.currentTarget.parentNode;
+      var start = props.axis === 'y' ? ev.clientY : ev.clientX;
+      var size = props.axis === 'y' ? el.offsetHeight : el.offsetWidth;
+      function move(e) {
+        var d = (props.axis === 'y' ? e.clientY : e.clientX) - start;
+        props.onResize(Math.max(props.min || 120, Math.round(size + d * props.sign)));
+      }
+      function up() {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        document.body.style.cursor = '';
+      }
+      document.body.style.cursor = props.axis === 'y' ? 'row-resize' : 'col-resize';
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    }
+    return h('div', { className: 'sv-resizer sv-resizer--' + props.edge, role: 'separator', 'aria-orientation': props.axis === 'y' ? 'horizontal' : 'vertical', onPointerDown: down });
+  }
+
+  function Rail(props) {
+    return h('button', { type: 'button', className: cx('sv-rail', 'sv-rail--' + props.region), title: 'Show ' + props.label.toLowerCase(), 'aria-label': 'Show ' + props.label.toLowerCase(), 'aria-expanded': false, onClick: props.onOpen },
+      h(Chevron, { open: props.region === 'bottom' ? false : null }),
+      h('span', { className: 'overline sv-caps sv-rail__label' }, props.label));
+  }
+
   function AppShell(props) {
     var o = props.overlays || {};
+    var col = props.collapsed || {};
+    var toggle = function (r) { return function () { if (props.onToggle) props.onToggle(r); }; };
+    var resize = function (r) { return props.onResize ? function (px) { props.onResize(r, px); } : null; };
     function slot(k, node) {
       return node ? h('div', { className: 'sv-viewport__slot sv-viewport__slot--' + k }, node) : null;
+    }
+    function side(r) {
+      var node = props[r];
+      if (!node) return null;
+      var label = props[r + 'Label'] || (r === 'left' ? 'Model tree' : 'Inspector');
+      var cls = 'sv-shell__side sv-shell__side--' + r;
+      if (col[r]) return h('aside', { className: cx(cls, 'is-collapsed'), 'aria-label': label }, h(Rail, { region: r, label: label, onOpen: toggle(r) }));
+      var rs = resize(r);
+      return h('aside', { className: cls, 'aria-label': label, style: { width: props[r + 'Width'] || 'var(--layout-' + r + ')' } },
+        h('div', { className: 'sv-shell__sidebody' }, node),
+        rs ? h(Resizer, { edge: r === 'left' ? 'right' : 'left', axis: 'x', sign: r === 'left' ? 1 : -1, min: 200, onResize: rs }) : null);
+    }
+    var bottom = null;
+    if (props.bottom) {
+      var bl = props.bottomLabel || 'Data';
+      var brs = resize('bottom');
+      bottom = col.bottom
+        ? h('section', { className: 'sv-shell__bottom is-collapsed', 'aria-label': bl }, h(Rail, { region: 'bottom', label: bl, onOpen: toggle('bottom') }))
+        : h('section', { className: 'sv-shell__bottom', 'aria-label': bl, style: { height: props.bottomHeight || 'var(--layout-bottom)' } },
+            brs ? h(Resizer, { edge: 'top', axis: 'y', sign: -1, min: 80, onResize: brs }) : null,
+            props.bottom);
     }
     return h('div', { className: cx('sv-shell', props.className) },
       props.toolbar ? h('header', { className: 'sv-shell__toolbar' }, props.toolbar) : null,
       h('div', { className: 'sv-shell__main' },
-        props.left ? h('aside', { className: 'sv-shell__side sv-shell__side--left', 'aria-label': props.leftLabel || 'Model tree', style: { width: props.leftWidth || 'var(--layout-left)' } }, props.left) : null,
+        side('left'),
         h('div', { className: 'sv-shell__center' },
           h('main', { className: 'sv-viewport', 'aria-label': 'Model view' },
             h('div', { className: 'sv-viewport__content' }, props.children),
             slot('tl', o.topLeft), slot('tr', o.topRight), slot('bl', o.bottomLeft), slot('br', o.bottomRight)),
-          props.bottom ? h('section', { className: 'sv-shell__bottom', 'aria-label': props.bottomLabel || 'Data', style: { height: props.bottomHeight || 'var(--layout-bottom)' } }, props.bottom) : null),
-        props.right ? h('aside', { className: 'sv-shell__side sv-shell__side--right', 'aria-label': props.rightLabel || 'Inspector', style: { width: props.rightWidth || 'var(--layout-right)' } }, props.right) : null),
+          bottom),
+        side('right')),
       props.statusbar ? h('footer', { className: 'sv-shell__status caption' }, props.statusbar) : null);
   }
 

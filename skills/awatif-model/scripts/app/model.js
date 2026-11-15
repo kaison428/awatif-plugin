@@ -238,3 +238,145 @@ export function utilizationStatus(design) {
   if (u > 0.9) return { status: "warn", word: "Near limit", u };
   return { status: "ok", word: "Pass", u };
 }
+
+// ---------- id lists ("1, 3, 5-8") ----------
+
+// Parse typed ids: numbers and ranges separated by commas or spaces. `valid` (a Set or
+// array of existing ids) rejects the rest. Returns sorted unique ids and the bad tokens.
+export function parseIdList(text, valid) {
+  const ok = valid ? new Set(valid) : null;
+  const ids = new Set();
+  const bad = [];
+  String(text ?? "")
+    .split(/[\s,;]+/)
+    .filter(Boolean)
+    .forEach((token) => {
+      const m = /^(\d+)(?:\s*[-–…]\s*|\.\.)?(\d+)?$/.exec(token);
+      if (!m) return bad.push(token);
+      const a = Number(m[1]);
+      const b = m[2] === undefined ? a : Number(m[2]);
+      const [lo, hi] = a <= b ? [a, b] : [b, a];
+      if (hi - lo > 100000) return bad.push(token);
+      let any = false;
+      for (let i = lo; i <= hi; i++) {
+        if (ok && !ok.has(i)) continue;
+        ids.add(i);
+        any = true;
+      }
+      if (!any) bad.push(token);
+    });
+  return { ids: [...ids].sort((x, y) => x - y), bad };
+}
+
+// [1, 3, 5, 6, 7, 8] -> "1, 3, 5–8"
+export function formatIdList(ids) {
+  const s = [...new Set(ids)].sort((a, b) => a - b);
+  const out = [];
+  for (let i = 0; i < s.length; i++) {
+    let j = i;
+    while (j + 1 < s.length && s[j + 1] === s[j] + 1) j++;
+    out.push(j - i >= 2 ? `${s[i]}–${s[j]}` : j > i ? `${s[i]}, ${s[j]}` : `${s[i]}`);
+    i = j;
+  }
+  return out.join(", ");
+}
+
+// ---------- assigning components to geometry ----------
+
+function sameParams(a = {}, b = {}) {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) return false;
+  return true;
+}
+
+// Fields whose entries are dropped once a reassignment or removal leaves them without geometry.
+// Design entries (sections) and grid systems are kept: they are definitions, not assignments.
+export const PRUNED_FIELDS = new Set(["loads", "supports", "releases", "localAxes", "imperfections", "mesh"]);
+
+function unassign(model, field, ids, kind, kindOf, keep) {
+  const gone = new Set(ids);
+  const emptied = new Set();
+  let list = model[field].map((e, i) => {
+    if (!(keep(e, i) && kindOf(e) === kind && e.geometry.some((g) => gone.has(g)))) return e;
+    const geometry = e.geometry.filter((g) => !gone.has(g));
+    if (!geometry.length) emptied.add(i);
+    return { ...e, geometry };
+  });
+  if (PRUNED_FIELDS.has(field)) list = list.filter((_, i) => !emptied.has(i));
+  else emptied.clear();
+  return { model: { ...model, [field]: list }, emptied };
+}
+
+// Remove geometry ids of `kind` from the entries of `field` that `keep(entry, index)` selects
+export function unassignFromField(model, field, ids, kind, kindOf, keep = () => true) {
+  return unassign(model, field, ids, kind, kindOf, keep).model;
+}
+
+// Add geometry ids to entry `index` of `field`. `exclusive` first removes them from the field's other
+// entries of the same kind (a line has one design member, one support per point...). Returns the model
+// and the entry's index (entries left empty before it may have been dropped).
+export function assignToEntry(model, field, index, ids, kind, kindOf, exclusive) {
+  let next = model;
+  if (exclusive) {
+    const r = unassign(model, field, ids, kind, kindOf, (_, i) => i !== index);
+    next = r.model;
+    index -= [...r.emptied].filter((i) => i < index).length;
+  }
+  return { model: assignGeometry(next, field, index, ids, true), index };
+}
+
+// Assign geometry to the entry of `field` with this template, params (compared with `paramsOf`, e.g.
+// with template defaults filled in) and load case; a new entry named after `name` when none matches.
+// Returns the model and the entry's index.
+export function assignToField(model, field, spec, kindOf) {
+  const { templateId, params = {}, ids, kind, exclusive, loadCase, name, paramsOf = (e) => e.params ?? {} } = spec;
+  let index = model[field].findIndex(
+    (e) =>
+      e.templateId === templateId &&
+      (field !== "loads" || e.loadCase === loadCase) &&
+      sameParams(paramsOf(e), paramsOf({ templateId, params })),
+  );
+  let next = model;
+  if (index === -1) {
+    const entry = { name: uniqueName(allNames(model), name ?? templateId), templateId, geometry: [], params: { ...params } };
+    if (field === "loads" && loadCase) entry.loadCase = loadCase;
+    next = { ...model, [field]: [...model[field], entry] };
+    index = next[field].length - 1;
+  }
+  return assignToEntry(next, field, index, ids, kind, kindOf, exclusive);
+}
+
+// Loads of one template in one load case are additive; `replace` first clears that template and
+// case from the target geometry.
+export function assignLoad(model, { templateId, loadCase, params, ids, replace, name, paramsOf }, kindOf) {
+  const kind = templateId === "point-load" ? "point" : "line";
+  let next = model;
+  if (replace) next = removeLoads(next, { templateId, loadCase, ids }, kindOf);
+  return assignToField(next, "loads", { templateId, loadCase, params, ids, kind, name, paramsOf }, kindOf);
+}
+
+export function removeLoads(model, { templateId, loadCase, ids }, kindOf) {
+  const kind = templateId === "point-load" ? "point" : "line";
+  return unassignFromField(
+    model,
+    "loads",
+    ids,
+    kind,
+    kindOf,
+    (e) => e.templateId === templateId && (!loadCase || e.loadCase === loadCase),
+  );
+}
+
+// A copy of an entry under a new name, placed after it. Returns the model and the copy's index.
+export function duplicateEntry(model, field, index) {
+  const e = model[field][index];
+  const copy = {
+    ...e,
+    name: uniqueName(allNames(model), e.name + " copy"),
+    geometry: [...(e.geometry ?? [])],
+    ...(e.params ? { params: JSON.parse(JSON.stringify(e.params)) } : {}),
+  };
+  const list = [...model[field]];
+  list.splice(index + 1, 0, copy);
+  return { model: { ...model, [field]: list }, index: index + 1 };
+}

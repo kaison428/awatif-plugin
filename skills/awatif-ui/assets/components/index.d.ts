@@ -20,6 +20,9 @@ export interface PanelProps {
   actions?: ReactNode;
   collapsible?: boolean;
   defaultOpen?: boolean;
+  /** Controlled open state of a collapsible panel; report changes with onToggle. */
+  open?: boolean;
+  onToggle?: (open: boolean) => void;
   flush?: boolean;
   children?: ReactNode;
 }
@@ -78,10 +81,13 @@ export interface PropertyRow {
   editable?: boolean;
   control?: 'input' | 'select' | 'checkbox';
   options?: SelectOption[];
+  placeholder?: string;
 }
 export interface PropertyGridProps {
-  groups: { title?: string; rows: PropertyRow[] }[];
+  /** A `collapsible` group folds to its title; `open` controls it (with onGroupToggle), else `defaultOpen`. */
+  groups: { title?: string; collapsible?: boolean; open?: boolean; defaultOpen?: boolean; rows: PropertyRow[] }[];
   onChange?: (key: string, value: string) => void;
+  onGroupToggle?: (title: string, open: boolean) => void;
 }
 
 export interface DataColumn {
@@ -123,6 +129,14 @@ export interface AppShellProps {
   leftWidth?: string;
   rightWidth?: string;
   bottomHeight?: string;
+  leftLabel?: string;
+  rightLabel?: string;
+  bottomLabel?: string;
+  /** Folded regions: a side becomes a rail, the drawer a bar; both open again through onToggle. */
+  collapsed?: { left?: boolean; right?: boolean; bottom?: boolean };
+  onToggle?: (region: 'left' | 'right' | 'bottom') => void;
+  /** Gives open regions a drag handle; px is the new width (sides) or height (bottom). */
+  onResize?: (region: 'left' | 'right' | 'bottom', px: number) => void;
   /** The model view: the three.js viewer (awatif-viewer.js). Fills the viewport. */
   children?: ReactNode;
 }

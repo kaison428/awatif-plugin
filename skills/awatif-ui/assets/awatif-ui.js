@@ -95,6 +95,19 @@
 
   function fixed(n, d) { return Number(n).toFixed(d == null ? 2 : d); }
 
+  /* [1, 3, 5, 6, 7, 8] -> "1, 3, 5–8" */
+  function formatIds(ids) {
+    var s = (ids || []).slice().sort(function (a, b) { return a - b; }).filter(function (v, i, a) { return i === 0 || a[i - 1] !== v; });
+    var out = [];
+    for (var i = 0; i < s.length; i++) {
+      var j = i;
+      while (j + 1 < s.length && s[j + 1] === s[j] + 1) j++;
+      out.push(j - i >= 2 ? s[i] + '–' + s[j] : j > i ? s[i] + ', ' + s[j] : String(s[i]));
+      i = j;
+    }
+    return out.join(', ');
+  }
+
   /* ---------- tree ---------- */
   function buildTree(model) {
     model = model || {};
@@ -138,7 +151,8 @@
     var groups = [];
     var assign = [];
     var kind = GEOMETRY_KIND[entry.templateId];
-    if (entry.geometry && entry.geometry.length) assign.push(ro(kind || 'Geometry', entry.geometry.join(', ')));
+    // The entry's geometry ids, editable as a list ("1, 3, 5-8")
+    if (kind) assign.push({ label: kind, value: formatIds(entry.geometry), control: 'input', key: '__geometry', placeholder: 'None, e.g. 1, 3, 5-8' });
     if (field === 'loads') assign.push({ label: 'Load case', value: entry.loadCase || (model.loadCases || [])[0] || '', control: 'select', key: 'loadCase', options: (model.loadCases || []).map(function (n) { return { value: n, label: n }; }) });
     if (assign.length) groups.push({ title: 'Assignment', rows: assign });
 
@@ -210,6 +224,6 @@
 
   window.AwatifUI = {
     TEMPLATE_NAMES: TEMPLATE_NAMES, UNITS: UNITS, ENUMS: ENUMS,
-    buildTree: buildTree, inspector: inspector, loadSelectionOptions: loadSelectionOptions, parseId: parseId, humanize: humanize
+    buildTree: buildTree, inspector: inspector, formatIds: formatIds, loadSelectionOptions: loadSelectionOptions, parseId: parseId, humanize: humanize
   };
 })();

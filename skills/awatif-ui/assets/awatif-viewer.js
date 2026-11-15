@@ -10,6 +10,7 @@
  *
  *   const viewer = AwatifViewer.createViewer(element, model, {
  *     onSelect: (id) => ..., onHover: (id) => ...,
+ *     onSelectionChange: (sel) => ...,  // view mode, Shift+click / Shift+drag: { point: [], line: [], polygon: [] }
  *     onAssign: (ids, add) => ...,      // assign mode: geometry ids of the active kind, add or remove
  *     onEdit: (op) => ...,              // edit mode: { type: 'move-point' | 'add-point' | 'add-line' | 'delete-point' | 'delete-line', ... }
  *     onModeExit: () => ...,            // right-click (no drag) in assign mode, or Escape
@@ -17,22 +18,32 @@
  *     workPlane: 'XY' | 'XZ' | 'YZ', workPlaneOffset: 0,             // where new points go in edit mode (default XZ, 0)
  *     snap: 0.1,                        // edit mode grid step in m; grid-line ordinates snap first
  *   });
- *   viewer.select('line-2' | 'supports-0' | null);   // highlight, same ids as AwatifUI.buildTree
+ *   viewer.select('line-2' | 'supports-0' | 'loads-1' | null);  // highlight, same ids as AwatifUI.buildTree
+ *   viewer.setSelection({ point: [1, 2], line: [], polygon: [] }); // the multi-selection (geometry ids)
+ *   viewer.setSelectionFilter({ point, line, polygon });           // kinds Shift+click / Shift+drag pick (all on)
  *   viewer.setLoadSelection('Dead' | 'ULS' | null);  // which loads to draw (null: all)
  *   viewer.setModel(model);                          // redraw after the model changes
  *   viewer.setMode('view' | 'assign' | 'edit', { kind: 'point' | 'line' | 'polygon' });  // kind: assign only
+ *   viewer.setView(null | { plane: 'XY' | 'XZ' | 'YZ', offset });  // null: 3D; else a 2D view of that plane
  *   viewer.setResults({ nodes, elements, displacements, reactions } | null, { deformed, reactions, scale });
- *   viewer.setDisplay({ loads, supports, gridLines, mesh });                // toggle model layers (all on by default)
- *   viewer.fit();                                    // frame the model
+ *   viewer.setDisplay({ loads, loadLabels, supports, gridLines, mesh });  // toggle model layers (all on by default)
+ *   viewer.setWorkPlane(plane, offset);              // where edit mode puts new points
+ *   viewer.fit();                                    // frame the model (or the plane, in a plane view)
  *   viewer.dispose();
  *
- * Interaction, every mode: left-drag orbits, right-drag pans, wheel zooms, double-click frames the model. Z is up.
- *   view:   click a point or line to select it, click empty space to clear.
+ * Interaction, every mode: left-drag orbits (pans in a plane view), right-drag pans, wheel zooms, double-click
+ * frames the model. Z is up.
+ *   view:   click a point, line, polygon or load arrow to select it, click empty space to clear. Shift+click
+ *           toggles geometry in the multi-selection; Shift+drag a box left to right adds what it touches, right
+ *           to left removes it. Escape clears.
  *   assign: drag a box left to right to add what it touches, right to left to remove; click toggles one item.
  *           Right-click (without dragging) or Escape leaves the mode.
  *   edit:   drag a point to move it, click empty space to add a point, click a point then a point or empty space
  *           to draw a line, right-click a point or line to delete it, Escape cancels a line in progress.
  *           New positions lie on the work plane (dragged points stay in their own plane parallel to it).
+ *
+ * Plane view: an orthographic camera looks straight at the plane. Geometry off the plane is drawn faint and
+ * cannot be picked; the plane becomes the work plane. Grid lines are drawn at every level in 3D.
  *
  * Colors come from the elem-* and viewport tokens and follow data-theme on <html>. Results draw into their own
  * group on `three.scene`; `three.root` is cleared on every redraw, so app drawings belong in a group of their own
@@ -51,8 +62,13 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 const POINT_TEMPLATES = new Set(['point-load', 'point-support']);
 const POLYGON_TEMPLATES = new Set(['triangle-mesh', 'generic-shell']);
 const COMPONENT_FIELDS = ['gridLines', 'loads', 'supports', 'releases', 'localAxes', 'imperfections', 'mesh', 'design'];
+const KINDS = ['point', 'line', 'polygon'];
 const PICK_PX = 8;
 const DRAG_PX = 4;
+const GHOST = 0.15;
+const AXIS_INDEX = { x: 0, y: 1, z: 2 };
+const PLANE_NORMAL_AXIS = { XY: 'z', XZ: 'y', YZ: 'x' };
+const PLANE_AXES = { XY: ['x', 'y'], XZ: ['x', 'z'], YZ: ['y', 'z'] };
 
 function entries(ided) {
   if (!ided) return [];
@@ -103,12 +119,35 @@ function pointInPolygon(p, ring) {
   }
   return inside;
 }
+/* Screen distance from m to segment pq, and where along it (0..1) */
+function segDistance(m, p, q) {
+  const dx = q.x - p.x, dy = q.y - p.y, len2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((m.x - p.x) * dx + (m.y - p.y) * dy) / len2));
+  return { d: Math.hypot(p.x + t * dx - m.x, p.y + t * dy - m.y), t };
+}
 
 const clean = (n) => (Math.abs(n) < 1e-9 ? 0 : Math.round(n * 1e6) / 1e6);
+const fmt = (v, d = 1) => (Math.abs(v) < 1e-9 ? 0 : v).toFixed(d).replace('-', '−');
+const emptySel = () => ({ point: new Set(), line: new Set(), polygon: new Set() });
+
+/* Fade an object (and its children) for geometry off the viewed plane. Materials must not be shared. */
+function fade(obj) {
+  obj.traverse((o) => {
+    if (!o.material) return;
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => {
+      m.transparent = true;
+      m.opacity = (m.opacity ?? 1) * GHOST;
+      m.depthWrite = false;
+    });
+  });
+  if (obj.isCSS2DObject) obj.element.style.opacity = String(GHOST);
+  return obj;
+}
 
 export function createViewer(element, model, options = {}) {
   const onSelect = options.onSelect || (() => {});
   const onHover = options.onHover || (() => {});
+  const onSelectionChange = options.onSelectionChange || (() => {});
   const onAssign = options.onAssign || (() => {});
   const onEdit = options.onEdit || (() => {});
   const onModeExit = options.onModeExit || (() => {});
@@ -130,15 +169,20 @@ export function createViewer(element, model, options = {}) {
   Object.assign(labels.domElement.style, { position: 'absolute', inset: '0', pointerEvents: 'none' });
   element.appendChild(labels.domElement);
 
-  // Selection box (assign mode): solid when adding (left to right), dashed when removing
+  // Selection box (assign mode, Shift+drag in view mode): solid when adding (left to right), dashed when removing
   const box = document.createElement('div');
   Object.assign(box.style, { position: 'absolute', display: 'none', pointerEvents: 'none', borderWidth: '1px', borderColor: 'var(--elem-selected)' });
   element.appendChild(box);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 10000);
-  camera.up.set(0, 0, 1);
-  camera.position.set(10, -15, 10);
+  const perspective = new THREE.PerspectiveCamera(45, 1, 0.01, 10000);
+  perspective.up.set(0, 0, 1);
+  perspective.position.set(10, -15, 10);
+  const ortho = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.01, 10000);
+  ortho.up.set(0, 0, 1);
+  let camera = perspective;
+  let orthoHalfHeight = 10;
+  let savedPerspective = null; // { position, target } to restore when leaving a plane view
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = false;
@@ -158,17 +202,21 @@ export function createViewer(element, model, options = {}) {
 
   let state = {
     model, loadSelection: null, selected: null, hovered: null,
+    multi: emptySel(),
+    filter: { point: true, line: true, polygon: true },
     mode: 'view', assignKind: 'line',
+    view: null,        // null (3D) or { plane, offset }
     lineStart: null,   // edit mode: point id a new line starts from
     dragPoint: null,   // edit mode: { id, pos } while a point is dragged
-    display: { loads: true, supports: true, gridLines: true, mesh: true },
+    display: { loads: true, loadLabels: true, supports: true, gridLines: true, mesh: true },
     workPlane: options.workPlane || 'XZ',
     workPlaneOffset: options.workPlaneOffset || 0,
     snap: options.snap === undefined ? 0.1 : options.snap,
   };
   let results = null;
   let resultOptions = { deformed: true, reactions: true, scale: 1 };
-  let draw = null; // { points: Map<id, Vector3>, lines: Map<id, [a,b]>, polygons: Map<id, Vector3[]>, box, extent }
+  // { points, lines, polygons, box, extent, ghost: {point,line,polygon: Set}, loadArrows: [{ id, tail, tip }] }
+  let draw = null;
   const lineMaterials = new Set();
 
   function resolutionFor(mat) {
@@ -183,16 +231,19 @@ export function createViewer(element, model, options = {}) {
   }
 
   function clearGroup(g) {
+    const seen = new Set();
     g.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { lineMaterials.delete(m); m.dispose(); });
+      if (o.geometry && !seen.has(o.geometry)) { seen.add(o.geometry); o.geometry.dispose(); }
+      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { if (seen.has(m)) return; seen.add(m); lineMaterials.delete(m); m.dispose(); });
       if (o.isCSS2DObject) o.element.remove();
     });
     g.clear();
   }
 
+  // Geometry ids highlighted: the single selection (a geometry id or an entry's geometry) and the multi-selection
   function selectedGeometry() {
-    const ids = { point: new Set(), line: new Set(), polygon: new Set() };
+    const ids = emptySel();
+    KINDS.forEach((k) => state.multi[k].forEach((g) => ids[k].add(g)));
     const id = state.selected;
     if (!id) return ids;
     let m;
@@ -223,6 +274,77 @@ export function createViewer(element, model, options = {}) {
     return o;
   }
 
+  /* ---------- plane view ---------- */
+  function planeTol(extent) { return 1e-3 * Math.max(1, extent || 1); }
+  // Is a position on the viewed plane? Always true in 3D.
+  function onPlane(v, extent) {
+    if (!state.view) return true;
+    const a = PLANE_NORMAL_AXIS[state.view.plane];
+    return Math.abs(v[a] - state.view.offset) <= planeTol(extent);
+  }
+
+  /* ---------- drawing ---------- */
+  function drawGridLines(mdl, bbox, s, C) {
+    const ords = { x: [], y: [], z: [] };
+    (mdl.gridLines || []).forEach((entry) => {
+      const p = entry.params || {};
+      ['x', 'y', 'z'].forEach((a) => (p[a] || []).forEach((g) => { if (g.visible !== false && typeof g.ordinate === 'number') ords[a].push(g); }));
+    });
+    if (!ords.x.length && !ords.y.length && !ords.z.length) return;
+    const pad = s * 3;
+    const span = {};
+    ['x', 'y', 'z'].forEach((a) => {
+      const vals = ords[a].map((g) => g.ordinate).concat([bbox.min[a], bbox.max[a]]);
+      span[a] = [Math.min(...vals) - pad, Math.max(...vals) + pad];
+    });
+    const color = C('elem-gridline');
+    const segs = [];
+    const add = (from, to, text, bubble, faded) => {
+      segs.push({ from, to, faded });
+      if (text != null) {
+        const at = bubble === 'start' ? from : to;
+        const l = label(text, at, 'var(--elem-gridline)');
+        root.add(faded ? fade(l) : l);
+      }
+    };
+    const vec = (o) => new THREE.Vector3(o.x, o.y, o.z);
+
+    if (state.view) {
+      // Plane view: the grid lines that lie in the plane (lines along one in-plane axis at the other's ordinates)
+      const n = PLANE_NORMAL_AXIS[state.view.plane];
+      const [u, v] = PLANE_AXES[state.view.plane];
+      [[u, v], [v, u]].forEach(([a, along]) => ords[a].forEach((g) => {
+        const from = { [n]: state.view.offset, [a]: g.ordinate, [along]: span[along][0] };
+        const to = { [n]: state.view.offset, [a]: g.ordinate, [along]: span[along][1] };
+        add(vec(from), vec(to), g.id, g.bubble);
+      }));
+    } else {
+      // 3D: x and y grid lines on every level, level lines at the grid intersections, level labels
+      const levels = ords.z.length ? ords.z.slice().sort((a, b) => a.ordinate - b.ordinate) : [{ id: null, ordinate: bbox.min.z }];
+      levels.forEach((lvl, li) => {
+        const z = lvl.ordinate;
+        const bubbles = li === 0;
+        ords.x.forEach((g) => add(new THREE.Vector3(g.ordinate, span.y[0], z), new THREE.Vector3(g.ordinate, span.y[1], z), bubbles ? g.id : null, g.bubble, !bubbles));
+        ords.y.forEach((g) => add(new THREE.Vector3(span.x[0], g.ordinate, z), new THREE.Vector3(span.x[1], g.ordinate, z), bubbles ? g.id : null, g.bubble, !bubbles));
+        if (lvl.id != null) root.add(label(lvl.id + ' ' + (z >= 0 ? '+' : '') + fmt(z, 2), new THREE.Vector3(span.x[0], span.y[0], z), 'var(--elem-gridline)'));
+      });
+      if (levels.length > 1) {
+        const z0 = levels[0].ordinate, z1 = levels[levels.length - 1].ordinate;
+        const xs = ords.x.length ? ords.x.map((g) => g.ordinate) : [span.x[0]];
+        const ys = ords.y.length ? ords.y.map((g) => g.ordinate) : [span.y[0]];
+        xs.forEach((x) => ys.forEach((y) => add(new THREE.Vector3(x, y, z0), new THREE.Vector3(x, y, z1), null, null, true)));
+      }
+    }
+    const strong = segs.filter((g) => !g.faded), weak = segs.filter((g) => g.faded);
+    [[strong, false], [weak, true]].forEach(([list, faded]) => {
+      if (!list.length) return;
+      const seg = new LineSegments2(new LineSegmentsGeometry().setPositions(list.flatMap((g) => [...g.from.toArray(), ...g.to.toArray()])), lineMat(color, 1, true));
+      seg.computeLineDistances();
+      if (faded) { seg.material.transparent = true; seg.material.opacity = 0.45; }
+      root.add(seg);
+    });
+  }
+
   function rebuild() {
     clearGroup(root);
     const mdl = state.model;
@@ -241,54 +363,46 @@ export function createViewer(element, model, options = {}) {
     if (bbox.isEmpty()) bbox.set(new THREE.Vector3(-1, -1, 0), new THREE.Vector3(1, 1, 1));
     const extent = Math.max(bbox.getSize(new THREE.Vector3()).length(), 1);
     const s = extent * 0.03; // symbol size
-    draw = { points: pts, lines, polygons, box: bbox, extent };
+
+    // Off-plane geometry (plane view only): drawn faint, never picked
+    const ghost = emptySel();
+    if (state.view) {
+      pts.forEach((p, id) => { if (!onPlane(p, extent)) ghost.point.add(id); });
+      lines.forEach(([a, b], id) => { if (!onPlane(a, extent) || !onPlane(b, extent)) ghost.line.add(id); });
+      polygons.forEach((ring, id) => { if (ring.some((p) => !onPlane(p, extent))) ghost.polygon.add(id); });
+    }
+    const maybeFade = (obj, faded) => (faded ? fade(obj) : obj);
+    draw = { points: pts, lines, polygons, box: bbox, extent, ghost, loadArrows: [] };
 
     const sel = selectedGeometry();
     const C = (n) => new THREE.Color(token(n));
     renderer.setClearColor(C('viewport'));
     const deformedShown = !!(results && resultOptions.deformed && results.displacements && results.displacements.length);
 
-    // Ground grid on the XY workplane
-    const span = Math.ceil(extent * 1.5);
-    const grid = new THREE.GridHelper(span * 2, span * 2, C('viewport-grid'), C('viewport-grid'));
-    grid.rotation.x = Math.PI / 2;
+    // Ground grid: on the XY plane under the model in 3D, on the viewed plane in a plane view
+    const gridSpan = Math.ceil(extent * 1.5);
+    const grid = new THREE.GridHelper(gridSpan * 2, gridSpan * 2, C('viewport-grid'), C('viewport-grid'));
     const center = bbox.getCenter(new THREE.Vector3());
-    grid.position.set(Math.round(center.x), Math.round(center.y), bbox.min.z);
+    const plane = state.view ? state.view.plane : 'XY';
+    if (plane === 'XY') grid.rotation.x = Math.PI / 2;
+    else if (plane === 'YZ') grid.rotation.z = Math.PI / 2;
+    grid.position.set(Math.round(center.x), Math.round(center.y), state.view ? Math.round(center.z) : bbox.min.z);
+    if (state.view) grid.position[PLANE_NORMAL_AXIS[plane]] = state.view.offset;
     root.add(grid);
 
-    // Grid lines (dash-dot) with bubbles
-    if (state.display.gridLines) (mdl.gridLines || []).forEach((entry) => {
-      const p = entry.params || {};
-      const pad = s * 3;
-      const add = (from, to, text, at) => {
-        const g = new LineSegmentsGeometry().setPositions([...from.toArray(), ...to.toArray()]);
-        const seg = new LineSegments2(g, lineMat(C('elem-gridline'), 1, true));
-        seg.computeLineDistances();
-        root.add(seg);
-        root.add(label(text, at, 'var(--elem-gridline)'));
-      };
-      const z0 = bbox.min.z;
-      (p.x || []).filter((g) => g.visible !== false).forEach((g) => {
-        const a = new THREE.Vector3(g.ordinate, bbox.min.y - pad, z0), b = new THREE.Vector3(g.ordinate, bbox.max.y + pad, z0);
-        add(a, b, g.id, g.bubble === 'start' ? a : b);
-      });
-      (p.y || []).filter((g) => g.visible !== false).forEach((g) => {
-        const a = new THREE.Vector3(bbox.min.x - pad, g.ordinate, z0), b = new THREE.Vector3(bbox.max.x + pad, g.ordinate, z0);
-        add(a, b, g.id, g.bubble === 'start' ? a : b);
-      });
-    });
+    if (state.display.gridLines) drawGridLines(mdl, bbox, s, C);
 
     // Polygons: outline + 20% face
     polygons.forEach((ring, id) => {
-      const on = sel.polygon.has(id), hov = state.hovered === 'polygon-' + id;
+      const on = sel.polygon.has(id), hov = state.hovered === 'polygon-' + id, faded = ghost.polygon.has(id);
       const color = C(on ? 'elem-selected' : hov ? 'elem-hover' : 'elem-polygon');
       const shapeGeom = new THREE.BufferGeometry().setFromPoints(ring);
       const idx = [];
       for (let i = 1; i < ring.length - 1; i++) idx.push(0, i, i + 1);
       shapeGeom.setIndex(idx);
-      root.add(new THREE.Mesh(shapeGeom, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false })));
+      root.add(maybeFade(new THREE.Mesh(shapeGeom, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false })), faded));
       const lg = new LineGeometry().setPositions([...ring, ring[0]].flatMap((v) => v.toArray()));
-      root.add(new Line2(lg, lineMat(color, on ? 3 : 1.5)));
+      root.add(maybeFade(new Line2(lg, lineMat(color, on ? 3 : 1.5)), faded));
     });
 
     // Lines: solid, heaviest; dashed in elem-undeformed under a deformed shape
@@ -298,7 +412,7 @@ export function createViewer(element, model, options = {}) {
       const base = deformedShown ? 'elem-undeformed' : 'elem-line';
       const line = new Line2(g, lineMat(C(on ? 'elem-selected' : hov ? 'elem-hover' : base), on ? 5 : deformedShown ? 1.5 : 3, deformedShown && !on && !hov));
       if (deformedShown) line.computeLineDistances();
-      root.add(line);
+      root.add(maybeFade(line, ghost.line.has(id)));
     });
 
     // Mesh: dots at division nodes
@@ -308,7 +422,7 @@ export function createViewer(element, model, options = {}) {
       const pos = [];
       (entry.geometry || []).forEach((lid) => {
         const l = lines.get(lid);
-        if (l) for (let i = 1; i < n; i++) pos.push(...new THREE.Vector3().lerpVectors(l[0], l[1], i / n).toArray());
+        if (l && !ghost.line.has(lid)) for (let i = 1; i < n; i++) pos.push(...new THREE.Vector3().lerpVectors(l[0], l[1], i / n).toArray());
       });
       if (!pos.length) return;
       const g = new THREE.BufferGeometry();
@@ -324,16 +438,16 @@ export function createViewer(element, model, options = {}) {
       const m = new THREE.Mesh(dot, new THREE.MeshBasicMaterial({ color: C(on ? 'elem-selected' : hov ? 'elem-hover' : 'elem-point') }));
       m.scale.setScalar(on || hov ? 1.5 : 1);
       m.position.copy(p);
-      root.add(m);
+      root.add(maybeFade(m, ghost.point.has(id)));
     });
 
     // Supports: fixed = block, pinned = cone, roller = cone on a plate
     if (state.display.supports) (mdl.supports || []).forEach((entry) => {
       const type = (entry.params || {}).type || 'pinned';
-      const mat = new THREE.MeshStandardMaterial({ color: C('elem-support') });
       (entry.geometry || []).forEach((pid) => {
         const p = pts.get(pid);
         if (!p) return;
+        const mat = new THREE.MeshStandardMaterial({ color: C('elem-support') });
         const g = new THREE.Group();
         if (type === 'fixed') {
           const b = new THREE.Mesh(new THREE.BoxGeometry(s * 1.4, s * 1.4, s * 0.5), mat);
@@ -352,51 +466,70 @@ export function createViewer(element, model, options = {}) {
           }
         }
         g.position.copy(p);
-        root.add(g);
+        root.add(maybeFade(g, ghost.point.has(pid)));
       });
     });
 
     // Releases: hinge ring near the released end
     (mdl.releases || []).forEach((entry) => {
       const type = (entry.params || {}).type || 'both-ends';
-      const mat = new THREE.MeshBasicMaterial({ color: C('elem-release') });
       (entry.geometry || []).forEach((lid) => {
         const l = lines.get(lid);
         if (!l) return;
         const ends = type === 'start' ? [0.08] : type === 'end' ? [0.92] : [0.08, 0.92];
         ends.forEach((t) => {
-          const m = new THREE.Mesh(new THREE.TorusGeometry(s * 0.3, s * 0.08, 8, 24), mat);
+          const m = new THREE.Mesh(new THREE.TorusGeometry(s * 0.3, s * 0.08, 8, 24), new THREE.MeshBasicMaterial({ color: C('elem-release') }));
           m.position.lerpVectors(l[0], l[1], t);
           m.lookAt(m.position.clone().add(localAxes(l[0], l[1]).y));
-          root.add(m);
+          root.add(maybeFade(m, ghost.line.has(lid)));
         });
       });
     });
 
-    // Loads: arrows, tips on the geometry
-    const loadColor = C('elem-load');
-    const arrow = (tip, dir, len) => {
+    // Loads: arrows, tips on the geometry, value labels. Arrows of the selected load entry are highlighted.
+    const arrow = (entryId, tip, dir, len, color, faded) => {
       const d = dir.clone().normalize();
-      root.add(new THREE.ArrowHelper(d, tip.clone().sub(d.clone().multiplyScalar(len)), len, loadColor, len * 0.3, len * 0.18));
+      const tail = tip.clone().sub(d.clone().multiplyScalar(len));
+      root.add(maybeFade(new THREE.ArrowHelper(d, tail, len, color, len * 0.3, len * 0.18), faded));
+      if (!faded) draw.loadArrows.push({ id: entryId, tail, tip: tip.clone() });
+      return tail;
     };
-    if (state.display.loads) (mdl.loads || []).filter(loadVisible).forEach((entry) => {
+    if (state.display.loads) (mdl.loads || []).forEach((entry, index) => {
+      if (!loadVisible(entry)) return;
+      const entryId = 'loads-' + index;
+      const color = C(state.selected === entryId ? 'elem-selected' : state.hovered === entryId ? 'elem-hover' : 'elem-load');
       const p = entry.params || {};
       if (entry.templateId === 'point-load') {
         const f = new THREE.Vector3(p.Fx || 0, p.Fy || 0, p.Fz || 0);
-        if (f.lengthSq() === 0) return;
-        (entry.geometry || []).forEach((pid) => pts.get(pid) && arrow(pts.get(pid), f, s * 2.5));
+        const parts = [];
+        ['Fx', 'Fy', 'Fz'].forEach((k) => { if (p[k]) parts.push(k + ' ' + fmt(p[k]) + ' kN'); });
+        ['Mx', 'My', 'Mz'].forEach((k) => { if (p[k]) parts.push(k + ' ' + fmt(p[k]) + ' kN·m'); });
+        if (!parts.length) return;
+        (entry.geometry || []).forEach((pid) => {
+          const at = pts.get(pid);
+          if (!at) return;
+          const faded = ghost.point.has(pid);
+          const tail = f.lengthSq() > 0 ? arrow(entryId, at, f, s * 2.5, color, faded) : at;
+          if (state.display.loadLabels) root.add(maybeFade(label(parts.join(', '), tail, 'var(--elem-load)'), faded));
+        });
       } else if (entry.templateId === 'distributed-load') {
         if (!p.w) return;
         const dir = p.direction || 'local-z';
         (entry.geometry || []).forEach((lid) => {
           const l = lines.get(lid);
           if (!l) return;
+          const faded = ghost.line.has(lid);
           let axis;
           if (dir.startsWith('global-')) axis = new THREE.Vector3(dir === 'global-x' ? 1 : 0, dir === 'global-y' ? 1 : 0, dir === 'global-z' ? 1 : 0);
           else axis = localAxes(l[0], l[1])[dir === 'local-y' ? 'y' : 'z'];
           const f = axis.multiplyScalar(Math.sign(p.w));
           const n = Math.max(3, Math.round(l[0].distanceTo(l[1]) / (s * 2)));
-          for (let i = 0; i <= n; i++) arrow(new THREE.Vector3().lerpVectors(l[0], l[1], i / n), f, s * 1.5);
+          let mid = null;
+          for (let i = 0; i <= n; i++) {
+            const tail = arrow(entryId, new THREE.Vector3().lerpVectors(l[0], l[1], i / n), f, s * 1.5, color, faded);
+            if (i === Math.round(n / 2)) mid = tail;
+          }
+          if (state.display.loadLabels && mid) root.add(maybeFade(label('w ' + fmt(p.w) + ' kN/m', mid, 'var(--elem-load)'), faded));
         });
       }
     });
@@ -414,6 +547,7 @@ export function createViewer(element, model, options = {}) {
     const nodes = results.nodes || [];
     const disp = results.displacements || [];
     const s = draw.extent * 0.03;
+    const nodeOnPlane = (n) => !!nodes[n] && onPlane({ x: nodes[n][0], y: nodes[n][1], z: nodes[n][2] }, draw.extent);
 
     if (resultOptions.deformed && disp.length) {
       let max = 0;
@@ -421,19 +555,23 @@ export function createViewer(element, model, options = {}) {
       const k = max > 0 ? ((draw.extent * 0.05) / max) * (resultOptions.scale || 1) : 0;
       lastDeformationScale = k;
       const at = (n) => new THREE.Vector3(nodes[n][0] + k * (disp[n * 3] || 0), nodes[n][1] + k * (disp[n * 3 + 1] || 0), nodes[n][2] + k * (disp[n * 3 + 2] || 0));
-      const pos = [];
+      const pos = [], faint = [];
       (results.elements || []).forEach((el) => {
         const edges = el.length === 2 ? [[el[0], el[1]]] : el.map((n, i) => [n, el[(i + 1) % el.length]]);
-        edges.forEach(([a, b]) => { if (nodes[a] && nodes[b]) pos.push(...at(a).toArray(), ...at(b).toArray()); });
+        edges.forEach(([a, b]) => {
+          if (!nodes[a] || !nodes[b]) return;
+          (nodeOnPlane(a) && nodeOnPlane(b) ? pos : faint).push(...at(a).toArray(), ...at(b).toArray());
+        });
       });
       if (pos.length) resultsGroup.add(new LineSegments2(new LineSegmentsGeometry().setPositions(pos), lineMat(C('elem-deformed'), 2.5)));
+      if (faint.length) resultsGroup.add(fade(new LineSegments2(new LineSegmentsGeometry().setPositions(faint), lineMat(C('elem-deformed'), 2.5))));
     }
 
     if (resultOptions.reactions && results.reactions && results.reactions.length) {
       const color = C('elem-reaction');
       const forces = [];
       results.reactions.forEach((r, n) => {
-        if (!r || !nodes[n]) return;
+        if (!r || !nodes[n] || !nodeOnPlane(n)) return;
         const f = new THREE.Vector3(r[0] || 0, r[1] || 0, r[2] || 0);
         if (f.length() > 1e-6) forces.push([n, f]);
       });
@@ -452,19 +590,94 @@ export function createViewer(element, model, options = {}) {
 
   function refresh() { rebuild(); drawResults(); }
 
+  /* ---------- cameras ---------- */
+  function useCamera(next) {
+    if (camera === next) return;
+    camera = next;
+    controls.object = next;
+  }
+
+  function updateOrtho() {
+    const aspect = (element.clientWidth || 1) / (element.clientHeight || 1);
+    ortho.left = -orthoHalfHeight * aspect;
+    ortho.right = orthoHalfHeight * aspect;
+    ortho.top = orthoHalfHeight;
+    ortho.bottom = -orthoHalfHeight;
+    ortho.updateProjectionMatrix();
+  }
+
   function fit() {
     if (!draw) return;
+    if (state.view) { fitPlane(); return; }
     const c = draw.box.getCenter(new THREE.Vector3());
     const r = draw.extent * 0.5;
-    const dist = r / Math.sin((camera.fov * Math.PI) / 360) * 1.1;
+    const dist = r / Math.sin((perspective.fov * Math.PI) / 360) * 1.1;
     const dir = new THREE.Vector3(0.6, -1, 0.55).normalize();
-    camera.near = dist / 1000;
-    camera.far = dist * 100;
-    camera.position.copy(c).add(dir.multiplyScalar(dist));
-    camera.updateProjectionMatrix();
+    perspective.near = dist / 1000;
+    perspective.far = dist * 100;
+    perspective.position.copy(c).add(dir.multiplyScalar(dist));
+    perspective.updateProjectionMatrix();
     controls.target.copy(c);
     controls.update();
     render();
+  }
+
+  // Frame the viewed plane: look along its normal, size the frustum to the geometry on it (else the model)
+  function fitPlane() {
+    const { plane, offset } = state.view;
+    const n = PLANE_NORMAL_AXIS[plane];
+    const [u, v] = PLANE_AXES[plane];
+    const onIt = new THREE.Box3();
+    draw.points.forEach((p, id) => { if (!draw.ghost.point.has(id)) onIt.expandByPoint(p); });
+    const b = onIt.isEmpty() ? draw.box : onIt;
+    const c = b.getCenter(new THREE.Vector3());
+    c[n] = offset;
+    const size = b.getSize(new THREE.Vector3());
+    const aspect = (element.clientWidth || 1) / (element.clientHeight || 1);
+    orthoHalfHeight = Math.max(1, Math.max(size[v], size[u] / aspect) / 2 * 1.2 + draw.extent * 0.05);
+    const dist = draw.extent * 2 + 10;
+    const dir = plane === 'XY' ? new THREE.Vector3(0, 0, 1) : plane === 'XZ' ? new THREE.Vector3(0, -1, 0) : new THREE.Vector3(1, 0, 0);
+    ortho.up.set(plane === 'XY' ? 0 : 0, plane === 'XY' ? 1 : 0, plane === 'XY' ? 0 : 1);
+    ortho.position.copy(c).add(dir.multiplyScalar(dist));
+    ortho.near = 0.01;
+    ortho.far = dist + draw.extent * 4;
+    ortho.zoom = 1;
+    ortho.lookAt(c);
+    updateOrtho();
+    controls.target.copy(c);
+    controls.update();
+    ortho.lookAt(c);
+    render();
+  }
+
+  function setView(view) {
+    const next = view && PLANE_AXES[view.plane] ? { plane: view.plane, offset: Number(view.offset) || 0 } : null;
+    if (next) {
+      if (!state.view) savedPerspective = { position: perspective.position.clone(), target: controls.target.clone() };
+      state.view = next;
+      state.workPlane = next.plane;
+      state.workPlaneOffset = next.offset;
+      useCamera(ortho);
+      controls.enableRotate = false;
+      controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+      rebuild();
+      drawResults();
+      fitPlane();
+    } else {
+      const was = state.view;
+      state.view = null;
+      useCamera(perspective);
+      controls.enableRotate = true;
+      controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+      rebuild();
+      drawResults();
+      if (was && savedPerspective) {
+        perspective.position.copy(savedPerspective.position);
+        controls.target.copy(savedPerspective.target);
+        controls.update();
+        render();
+      } else fit();
+    }
   }
 
   function render() {
@@ -476,16 +689,17 @@ export function createViewer(element, model, options = {}) {
     const w = element.clientWidth || 1, h = element.clientHeight || 1;
     renderer.setSize(w, h);
     labels.setSize(w, h);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
+    perspective.aspect = w / h;
+    perspective.updateProjectionMatrix();
+    updateOrtho();
     lineMaterials.forEach((m) => m.resolution.set(w, h));
     render();
   }
 
-  /* ---------- screen-space picking ---------- */
+  /* ---------- screen-space picking (off-plane geometry is never picked) ---------- */
   function screenOf(v, rect) {
     const p = v.clone().project(camera);
-    return { x: (p.x + 1) / 2 * rect.width, y: (1 - p.y) / 2 * rect.height, behind: p.z > 1 };
+    return { x: (p.x + 1) / 2 * rect.width, y: (1 - p.y) / 2 * rect.height, behind: p.z > 1 || p.z < -1 };
   }
   function mouseOf(ev) {
     const rect = renderer.domElement.getBoundingClientRect();
@@ -497,6 +711,7 @@ export function createViewer(element, model, options = {}) {
     const m = mouseOf(ev);
     let best = null, bestD = PICK_PX;
     draw.points.forEach((v, id) => {
+      if (draw.ghost.point.has(id)) return;
       const p = screenOf(v, m.rect);
       const d = Math.hypot(p.x - m.x, p.y - m.y);
       if (!p.behind && d < bestD) { bestD = d; best = id; }
@@ -509,11 +724,10 @@ export function createViewer(element, model, options = {}) {
     const m = mouseOf(ev);
     let best = null, bestD = PICK_PX;
     draw.lines.forEach(([a, b], id) => {
+      if (draw.ghost.line.has(id)) return;
       const p = screenOf(a, m.rect), q = screenOf(b, m.rect);
       if (p.behind || q.behind) return;
-      const dx = q.x - p.x, dy = q.y - p.y, len2 = dx * dx + dy * dy || 1;
-      const t = Math.max(0, Math.min(1, ((m.x - p.x) * dx + (m.y - p.y) * dy) / len2));
-      const d = Math.hypot(p.x + t * dx - m.x, p.y + t * dy - m.y);
+      const { d } = segDistance(m, p, q);
       if (d < bestD) { bestD = d; best = id; }
     });
     return best;
@@ -524,6 +738,7 @@ export function createViewer(element, model, options = {}) {
     const m = mouseOf(ev);
     let best = null;
     draw.polygons.forEach((ring, id) => {
+      if (draw.ghost.polygon.has(id)) return;
       const scr = ring.map((v) => screenOf(v, m.rect));
       if (scr.some((p) => p.behind)) return;
       if (pointInPolygon(m, scr)) best = id;
@@ -531,13 +746,30 @@ export function createViewer(element, model, options = {}) {
     return best;
   }
 
-  // Nearest point, then nearest line, then a polygon under the cursor
-  function pick(ev) {
-    const p = pickPoint(ev);
+  // A load arrow's shaft (not its tip, which sits on the geometry): the load entry id
+  function pickLoad(ev) {
+    if (!draw || !state.display.loads) return null;
+    const m = mouseOf(ev);
+    let best = null, bestD = PICK_PX;
+    draw.loadArrows.forEach((a) => {
+      const p = screenOf(a.tail, m.rect), q = screenOf(a.tip, m.rect);
+      if (p.behind || q.behind) return;
+      const { d, t } = segDistance(m, p, q);
+      if (t < 0.8 && d < bestD) { bestD = d; best = a.id; }
+    });
+    return best;
+  }
+
+  // Nearest point, then a load arrow, then nearest line, then a polygon under the cursor
+  function pick(ev, filter) {
+    const f = filter || { point: true, line: true, polygon: true, load: true };
+    const p = f.point ? pickPoint(ev) : null;
     if (p !== null) return 'point-' + p;
-    const l = pickLine(ev);
+    const ld = f.load ? pickLoad(ev) : null;
+    if (ld !== null) return ld;
+    const l = f.line ? pickLine(ev) : null;
     if (l !== null) return 'line-' + l;
-    const g = pickPolygon(ev);
+    const g = f.polygon ? pickPolygon(ev) : null;
     return g !== null ? 'polygon-' + g : null;
   }
 
@@ -550,12 +782,15 @@ export function createViewer(element, model, options = {}) {
   // Ids of `kind` the screen rectangle touches
   function boxSelect(r, kind, rect) {
     const out = [];
-    if (kind === 'point') draw.points.forEach((v, id) => { const p = screenOf(v, rect); if (!p.behind && inRect(p, r)) out.push(id); });
+    const g = draw.ghost[kind];
+    if (kind === 'point') draw.points.forEach((v, id) => { if (g.has(id)) return; const p = screenOf(v, rect); if (!p.behind && inRect(p, r)) out.push(id); });
     else if (kind === 'line') draw.lines.forEach(([a, b], id) => {
+      if (g.has(id)) return;
       const p = screenOf(a, rect), q = screenOf(b, rect);
       if (!p.behind && !q.behind && segTouchesRect(p, q, r)) out.push(id);
     });
     else draw.polygons.forEach((ring, id) => {
+      if (g.has(id)) return;
       const scr = ring.map((v) => screenOf(v, rect));
       if (scr.some((p) => p.behind)) return;
       const touches = scr.some((p) => inRect(p, r)) ||
@@ -563,6 +798,12 @@ export function createViewer(element, model, options = {}) {
         pointInPolygon({ x: (r.x0 + r.x1) / 2, y: (r.y0 + r.y1) / 2 }, scr);
       if (touches) out.push(id);
     });
+    return out;
+  }
+
+  function multiOut() {
+    const out = {};
+    KINDS.forEach((k) => { out[k] = [...state.multi[k]].sort((a, b) => a - b); });
     return out;
   }
 
@@ -613,13 +854,13 @@ export function createViewer(element, model, options = {}) {
   }
 
   /* ---------- pointer handling ---------- */
-  let down = null;   // { x, y, button, boxing, dragId }
+  let down = null;   // { x, y, button, boxing, dragId, shift }
 
   // Capture phase, so OrbitControls never sees a box drag or a point drag
   const onDownCapture = (ev) => {
-    down = { x: ev.clientX, y: ev.clientY, button: ev.button, boxing: false, dragId: null };
+    down = { x: ev.clientX, y: ev.clientY, button: ev.button, boxing: false, dragId: null, shift: ev.shiftKey || ev.ctrlKey || ev.metaKey };
     if (ev.button !== 0) return;
-    if (state.mode === 'assign') {
+    if (state.mode === 'assign' || (state.mode === 'view' && ev.shiftKey)) {
       down.boxing = true;
       controls.enabled = false;
     } else if (state.mode === 'edit') {
@@ -653,7 +894,9 @@ export function createViewer(element, model, options = {}) {
       return;
     }
     if (ev.buttons) return;
-    const id = state.mode === 'assign' ? (() => { const k = pickOfKind(ev, state.assignKind); return k === null ? null : state.assignKind + '-' + k; })() : pick(ev);
+    const id = state.mode === 'assign'
+      ? (() => { const k = pickOfKind(ev, state.assignKind); return k === null ? null : state.assignKind + '-' + k; })()
+      : state.mode === 'edit' ? pick(ev, { point: true, line: true, polygon: true, load: false }) : pick(ev);
     renderer.domElement.style.cursor = state.mode === 'edit' ? (id && id.startsWith('point-') ? 'move' : 'crosshair') : id ? 'pointer' : 'default';
     if (id !== state.hovered) { state.hovered = id; rebuild(); onHover(id); }
     if (state.mode === 'edit' && state.lineStart !== null) {
@@ -730,9 +973,40 @@ export function createViewer(element, model, options = {}) {
       return;
     }
 
-    if (moved) return; // that was an orbit
+    // View mode. Shift+drag: box into the multi-selection; Shift/Ctrl+click: toggle one item.
+    if (d.boxing) {
+      box.style.display = 'none';
+      if (moved) {
+        const m = mouseOf(ev);
+        const x0 = d.x - m.rect.left, y0 = d.y - m.rect.top;
+        const r = { x0: Math.min(x0, m.x), y0: Math.min(y0, m.y), x1: Math.max(x0, m.x), y1: Math.max(y0, m.y) };
+        const add = m.x >= x0;
+        KINDS.forEach((k) => { if (state.filter[k]) boxSelect(r, k, m.rect).forEach((id) => (add ? state.multi[k].add(id) : state.multi[k].delete(id))); });
+        rebuild();
+        onSelectionChange(multiOut());
+        return;
+      }
+    }
+    if (moved) return; // that was an orbit (or a pan in a plane view)
+    if (d.shift) {
+      const id = pick(ev, { ...state.filter, load: false });
+      const m = id && /^(point|line|polygon)-(\d+)$/.exec(id);
+      if (!m) return;
+      // Start from what is highlighted, so Shift+click extends a single selection
+      if (!KINDS.some((k) => state.multi[k].size)) {
+        const cur = state.selected && /^(point|line|polygon)-(\d+)$/.exec(state.selected);
+        if (cur) state.multi[cur[1]].add(Number(cur[2]));
+      }
+      const set = state.multi[m[1]], gid = Number(m[2]);
+      if (set.has(gid)) set.delete(gid); else set.add(gid);
+      state.selected = null;
+      rebuild();
+      onSelectionChange(multiOut());
+      return;
+    }
     const id = pick(ev);
     state.selected = id;
+    state.multi = emptySel();
     rebuild();
     onSelect(id);
   };
@@ -743,8 +1017,16 @@ export function createViewer(element, model, options = {}) {
   const onDbl = () => { if (state.mode === 'view') fit(); };
   const onKey = (ev) => {
     if (ev.key !== 'Escape') return;
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test((ev.target && ev.target.tagName) || '')) return;
     if (state.mode === 'edit' && state.lineStart !== null) { state.lineStart = null; drawPreview(null); rebuild(); }
     else if (state.mode === 'assign') onModeExit();
+    else if (state.mode === 'view' && (state.selected || KINDS.some((k) => state.multi[k].size))) {
+      state.selected = null;
+      state.multi = emptySel();
+      rebuild();
+      onSelectionChange(multiOut());
+      onSelect(null);
+    }
   };
   renderer.domElement.addEventListener('pointerdown', onDownCapture, true);
   renderer.domElement.addEventListener('pointermove', onMove);
@@ -765,8 +1047,17 @@ export function createViewer(element, model, options = {}) {
   fit();
 
   return {
-    three: { THREE, scene, camera, renderer, controls, root },
+    three: { THREE, scene, get camera() { return camera; }, renderer, controls, root },
     select(id) { if (id !== state.selected) { state.selected = id || null; rebuild(); } },
+    setSelection(sel) {
+      const next = emptySel();
+      KINDS.forEach((k) => ((sel && sel[k]) || []).forEach((g) => next[k].add(g)));
+      const same = KINDS.every((k) => next[k].size === state.multi[k].size && [...next[k]].every((g) => state.multi[k].has(g)));
+      if (same) return;
+      state.multi = next;
+      rebuild();
+    },
+    setSelectionFilter(f) { state.filter = Object.assign({}, state.filter, f); },
     setLoadSelection(name) { state.loadSelection = name || null; rebuild(); },
     setModel(next) { state.model = next; state.dragPoint = null; refresh(); },
     setMode(mode, opts = {}) {
@@ -779,6 +1070,8 @@ export function createViewer(element, model, options = {}) {
       renderer.domElement.style.cursor = state.mode === 'edit' ? 'crosshair' : 'default';
       rebuild();
     },
+    setView,
+    getView() { return state.view ? { ...state.view } : null; },
     setResults(next, opts) {
       results = next || null;
       if (opts) resultOptions = Object.assign({}, resultOptions, opts);

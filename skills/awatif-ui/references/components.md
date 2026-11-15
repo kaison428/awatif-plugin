@@ -18,7 +18,8 @@ What goes where, from the model:
 
 Use it like this:
 - Omit a region by leaving the prop out; the viewport grows to fill the space. Do not move a region to a different side and do not add a seventh.
-- Resize with `leftWidth`, `rightWidth` and `bottomHeight`. The defaults are `layout-left`, `layout-right` and `layout-bottom`.
+- Resize with `leftWidth`, `rightWidth` and `bottomHeight`. The defaults are `layout-left`, `layout-right` and `layout-bottom`. Pass `onResize(region, px)` to give the open regions a drag handle on their inner edge, and keep the sizes in state.
+- Let the user fold regions to enlarge the viewport: pass `collapsed: { left, right, bottom }` and `onToggle(region)`. A folded side becomes a narrow rail and a folded drawer a single bar, each a button that opens it again (labelled by `leftLabel`, `rightLabel`, `bottomLabel`). Put a `sv-collapse-btn` in the region's own header to fold it, and offer a toolbar command that folds every region at once.
 - In the toolbar use `sv-toolbar__sep` between groups and `sv-toolbar__spacer` to push the canvas buttons to the right.
 - Keep one shared selection: the tree, the viewport and the tables show the same item, and the inspector describes it.
 
@@ -30,7 +31,7 @@ Do not:
 
 Panel is the titled container for everything in a region: a header with an uppercase overline title and optional actions, then a body.
 
-You provide `title` (typed in sentence case; the panel uppercases it), `children`, and optionally `actions` (small ghost buttons) for the header. Set `collapsible` for groups the user can fold, and `defaultOpen={false}` to start folded.
+You provide `title` (typed in sentence case; the panel uppercases it), `children`, and optionally `actions` (small ghost buttons) for the header. Set `collapsible` for groups the user can fold, and `defaultOpen={false}` to start folded, or control it with `open` and `onToggle(open)`. Several panels can stack in one side region; a folded one shrinks to its header.
 
 Use it like this:
 - Inside `AppShell` regions, use `flush` so the body has no padding and a `TreeView`, `PropertyGrid` or `DataTable` runs edge to edge.
@@ -63,10 +64,10 @@ Do not:
 
 PropertyGrid shows the fields of the selected item in the inspector: groups of label and value rows, with the control that fits each field.
 
-You provide `groups` as `{ title?, rows: [{ label, value, unit?, numeric?, control?, options?, key? }] }`. `value` may be a string, a number, a boolean (checkbox) or a node such as a `StatusBadge`. Set `control` to `input` (or `editable: true`), `select` (with `options`) or `checkbox`; leave it off for read-only text. Pass `onChange(key, value)` to receive edits, and give the grid a `key` that changes with the selection so its fields reset.
+You provide `groups` as `{ title?, collapsible?, open?, defaultOpen?, rows: [{ label, value, unit?, numeric?, control?, options?, key?, placeholder? }] }`. A `collapsible` group folds to its title; it keeps its own open state unless you pass `open` and handle `onGroupToggle(title, open)`. `value` may be a string, a number, a boolean (checkbox) or a node such as a `StatusBadge`. Set `control` to `input` (or `editable: true`), `select` (with `options`) or `checkbox`; leave it off for read-only text. Pass `onChange(key, value)` to receive edits, and give the grid a `key` that changes with the selection so its fields reset.
 
 Use it like this:
-- Build every component entry with the same anatomy: an Assignment group (geometry ids and, for loads, the load case), a Parameters group (the template's params), and for design entries a Design group.
+- Build every component entry with the same anatomy: an Assignment group (geometry ids as an editable list such as `1, 3, 5–8` — `AwatifUI.formatIds` — and, for loads, the load case), a Parameters group (the template's params), and for design entries a Design group.
 - Pick the control from the param's type: number → input with its `unit`; fixed list (grade, profile, class) → select; boolean → checkbox; enumerated value (`direction`, support `type`, release `type`) → select with readable labels and the raw value as the option value.
 - Put the unit in `unit`, not in the label or value, and keep the template's own unit (kN/m, MPa, mm, cm²). Numbers use `data` so decimals align.
 - Group a long design template under named sub-groups (Section, Material, Reinforcement) once Parameters passes about eight rows.
