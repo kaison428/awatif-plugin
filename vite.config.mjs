@@ -1,10 +1,7 @@
+// `vite build` (npm run build) builds the live app shell; see vite/app.config.mjs.
+// The dev server is started by skills/awatif-model/scripts/serve.mjs, which
+// passes the model to vite/app.config.mjs's devConfig.
 import { defineConfig } from "vite";
-import glsl from "vite-plugin-glsl";
+import { buildConfig } from "./vite/app.config.mjs";
 
-export default defineConfig({
-  plugins: [glsl()],
-  optimizeDeps: {
-    esbuildOptions: { loader: { ".glsl": "text" } },
-    rolldownOptions: { moduleTypes: { ".glsl": "text" } },
-  },
-});
+export default defineConfig(buildConfig());

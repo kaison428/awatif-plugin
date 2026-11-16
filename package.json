@@ -1,5 +1,13 @@
 {
+  "name": "awatif-plugin",
+  "private": true,
+  "type": "module",
   "scripts": {
+    "dev": "node skills/awatif-model/scripts/serve.mjs",
+    "build": "node vite/build.mjs",
+    "export": "node skills/awatif-model/scripts/export.mjs",
+    "analyze": "node skills/awatif-model/scripts/analyze.mjs",
+    "check": "node scripts/check-size.mjs",
     "eval": "claude plugin eval . --scaffold --keep-temp --ablation none --model opus --judge-model sonnet --allow-tools Write Bash --no-publish",
     "eval:collect": "node scripts/collect-eval.mjs",
     "eval:inspect": "node scripts/inspect-eval.mjs"
@@ -15,5 +23,8 @@
     "vanjs-core": "^1.6.1",
     "vite": "^8.3.4",
     "vite-plugin-glsl": "^1.6.2"
+  },
+  "devDependencies": {
+    "vite-plugin-singlefile": "^2.3.4"
   }
 }

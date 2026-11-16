@@ -81,6 +81,7 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+!skills/awatif-model/dist/
 .output
 
 # Gatsby files

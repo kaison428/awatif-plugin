@@ -5,7 +5,7 @@ description: Design system for structural analysis and modeling viewer apps buil
 
 # Structural viewer design system
 
-> **Interactive Awatif models:** to let a user work on a model (box-select geometry for loads and supports, draw and move points and lines, edit parameters, see results update live), launch the live Awatif app with the `awatif-model` skill's `scripts/serve.mjs`. That app is built on this design system (`AppShell`, `TreeView`, `PropertyGrid`, `DataTable`, `awatif-ui.js`, `awatif-viewer.js`) and runs Awatif's engine (`createEngine`) for the analysis; its source is `skills/awatif-model/scripts/app/`. The starter here does not run analysis; use it for custom-branded viewers and dashboards.
+> **Interactive Awatif models:** to let a user work on a model (box-select geometry for loads and supports, draw and move points and lines, edit parameters, see results update live), launch the live Awatif app with the `awatif-model` skill's `scripts/serve.mjs`. That app is built on this design system (`AppShell`, `TreeView`, `PropertyGrid`, `DataTable`, `awatif-ui.js`, `awatif-viewer.js`) and runs Awatif's engine (`createEngine`) for the analysis; its source is `skills/awatif-model/scripts/app/`, and `export.mjs` turns it into one self-contained page for a Claude artifact or a ChatGPT Site. The starter here does not run analysis; use it for custom-branded viewers and dashboards.
 >
 > **Never use the UI that ships inside the awatif library** (`createApp`, `getViewer`, `getReport` or anything from `@awatif/ui`). Every interface comes from this design system; awatif is used for analysis only.
 
@@ -98,6 +98,10 @@ python scripts/build_tokens_css.py     # regenerates assets/tokens.css
 ```
 
 Grammar notes: colors are lists with per-theme values (`{"light": "...", "dark": "..."}`), an alias is written `"{accent}"`, and type styles are grouped (Display, Headings, Interface, Data). If you change a color, re-check contrast (4.5:1 text, 3:1 marks) in both themes.
+
+## Changing the viewer
+
+`assets/awatif-viewer.js` is generated: its source is `src/viewer/`, one module per concern (`scene`, `camera`, `draw-model`, `draw-grid`, `draw-symbols`, `draw-results`, `draw-diagram`, `picking`, `pointer`, `work-plane`; `index.js` composes them and documents the API). Edit the source, then run `npm run build` in the plugin root. Follow the plugin's `AGENTS.md` (modular files of about 500 lines at most, one purpose per function).
 
 ## Checking your work
 

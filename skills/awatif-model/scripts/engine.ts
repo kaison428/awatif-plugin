@@ -160,19 +160,9 @@ export async function createEngine(config: AppConfig = {}): Promise<Engine> {
       geometry.lines.val = fresh.lines.val;
       geometry.polygons.val = fresh.polygons.val;
       components.val = created.components.val;
-      const keptCase = activeName !== null ? caseIds.get(activeName) : undefined;
-      const keptCombination =
-        activeName !== null ? combinationIds.get(activeName) : undefined;
-      const firstCase = [...caseIds.values()][0];
       display.activeLoadSelection.val = allLoads
         ? null
-        : keptCase
-        ? { kind: "case", id: keptCase }
-        : keptCombination
-          ? { kind: "combination", id: keptCombination }
-          : firstCase
-            ? { kind: "case", id: firstCase }
-            : null;
+        : keptLoadSelection(activeName, caseIds, combinationIds);
     },
 
     setParams(componentName, params) {
@@ -245,6 +235,21 @@ function getCombinationIds(components: Components["val"]): Map<string, string> {
     }),
   );
   return ids;
+}
+
+// The load case or combination named `name` if it still exists, else the
+// first load case, else every load (`null`)
+function keptLoadSelection(
+  name: string | null,
+  caseIds: LoadCaseIds,
+  combinationIds: Map<string, string>,
+): Display["activeLoadSelection"]["val"] {
+  const keptCase = name !== null ? caseIds.get(name) : undefined;
+  if (keptCase) return { kind: "case", id: keptCase };
+  const keptCombination = name !== null ? combinationIds.get(name) : undefined;
+  if (keptCombination) return { kind: "combination", id: keptCombination };
+  const firstCase = [...caseIds.values()][0];
+  return firstCase ? { kind: "case", id: firstCase } : null;
 }
 
 function getActiveLoadName(
