@@ -20,14 +20,14 @@ Rules for any agent (Claude Code, Codex) changing code in this repository. `CLAU
 | `skills/awatif-model/scripts/engine.ts` | `createEngine`: awatif's analysis without UI | |
 | `skills/awatif-model/dist/index.html` | **Generated.** The model-agnostic app shell that `export.mjs` stamps models into | Committed, so exports work without a build. |
 | `skills/awatif-ui/src/viewer/` | The three.js viewer's source, one module per concern | |
-| `skills/awatif-ui/assets/awatif-viewer.js` | **Generated** from `src/viewer/` | Never edit by hand. |
+| `skills/awatif-ui/assets/dist/awatif-viewer.js` | **Generated** (minified) from `src/viewer/` | Never edit by hand. |
 | `skills/awatif-ui/assets/` | Design system: tokens, component bundle, AwatifUI helpers, fonts | `tokens.css` is generated from `tokens.json` (`scripts/build_tokens_css.py`). |
 
 ## Workflow
 
 1. **Change the source** (never a generated file).
 2. **Try it live:** `npm run dev -- <path/to/model.ts>` (Vite dev server; edits reload instantly).
-3. **Rebuild the generated files:** `npm run build`. It writes `awatif-viewer.js` and `dist/index.html`, both in about a second. Commit them with the source.
+3. **Rebuild the generated files:** `npm run build`. It writes `assets/dist/awatif-viewer.js` and `dist/index.html`, both in about a second. Commit them with the source.
 4. **Check:**
    - `npm run check` (file sizes);
    - `node skills/awatif-model/scripts/analyze.mjs skills/awatif-model/assets/templates/portalFrame.ts` (the engine still runs);

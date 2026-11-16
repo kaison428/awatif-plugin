@@ -9,6 +9,6 @@ export const distDir = join(pluginRoot, "skills/awatif-model/dist");
 // The built, model-agnostic app that export.mjs stamps models into
 export const appShell = join(distDir, "index.html");
 export const viewerSrc = join(pluginRoot, "skills/awatif-ui/src/viewer/index.js");
-export const viewerAsset = join(pluginRoot, "skills/awatif-ui/assets/awatif-viewer.js");
+export const viewerAsset = join(pluginRoot, "skills/awatif-ui/assets/dist/awatif-viewer.js");
 
 export const toUrl = (path) => path.replaceAll("\\", "/");

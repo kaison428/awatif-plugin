@@ -59,7 +59,7 @@ Vite does everything: the dev server and its one backend route (`serve.mjs`, sav
 | Command | What it does |
 | --- | --- |
 | `npm run dev -- <model.ts>` | Live app on Vite's dev server (`serve.mjs`) |
-| `npm run build` | Rebuilds `skills/awatif-ui/assets/awatif-viewer.js` and `skills/awatif-model/dist/index.html` from source |
+| `npm run build` | Rebuilds `skills/awatif-ui/assets/dist/awatif-viewer.js` and `skills/awatif-model/dist/index.html` from source |
 | `npm run export -- <model.ts>...` | Shareable pages (`export.mjs`) |
 | `npm run analyze -- <model.ts>` | Headless results (`analyze.mjs`) |
 | `npm run check` | Fails on source files over 500 lines |
@@ -72,7 +72,7 @@ Coding rules for agents and people are in [`AGENTS.md`](AGENTS.md) (Claude Code 
 - `.codex-plugin/plugin.json`: Codex manifest (keep its version in step with the Claude one)
 - `vite/`: the Vite config (dev and build), the app's Vite plugin and dev backend, CLI helpers
 - `skills/awatif-model/`: `SKILL.md`, `references/` (data model, engine), `scripts/` (`serve.mjs`, `analyze.mjs`, `export.mjs`, `engine.ts`, `lib/`, the live app in `app/`), `dist/` (the built app shell), `assets/templates/` (example models)
-- `skills/awatif-ui/`: design system (`assets/`, `references/`, `scripts/scaffold.py`); the viewer's source is `src/viewer/`, and `assets/awatif-viewer.js` is built from it
+- `skills/awatif-ui/`: design system (`assets/`, `references/`, `scripts/scaffold.py`); the viewer's source is `src/viewer/`, and `assets/dist/awatif-viewer.js` is built from it
 - `evals/`: plugin eval cases (`prompt.md` + `graders/`, image cases add `case.yaml`, `fixture.sh`, `resources/`)
 - `scripts/`: eval helpers (below)
 - `agents/`, `commands/`: placeholder examples only; `hooks/hooks.json` is empty

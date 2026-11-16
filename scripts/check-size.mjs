@@ -11,7 +11,7 @@ const MAX_LINES = 500;
 const SOURCE = /\.(m?js|ts|tsx|py)$/;
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "evals", "models"]);
 // Built by `npm run build` or shipped prebuilt; their sources live elsewhere
-const GENERATED = new Set(["skills/awatif-ui/assets/awatif-viewer.js", "skills/awatif-ui/assets/components/bundle.js"]);
+const GENERATED = new Set(["skills/awatif-ui/assets/components/bundle.js"]);
 
 function* sourceFiles(dir) {
   for (const name of readdirSync(dir)) {

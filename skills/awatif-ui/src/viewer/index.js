@@ -1,7 +1,7 @@
 /* Awatif viewer: the default, required three.js viewport for structural viewer apps.
  *
  * Source: skills/awatif-ui/src/viewer/ (this file composes the modules). `npm run build` bundles it into
- * assets/awatif-viewer.js, the single ES module pages load; never edit that file by hand.
+ * assets/dist/awatif-viewer.js, the minified ES module pages load; never edit that file by hand.
  *
  * ES module. Needs "three" and "three/addons/" to resolve: through a bundler (Vite resolves them from
  * node_modules), or an import map (the starter pins three@0.183.2):
